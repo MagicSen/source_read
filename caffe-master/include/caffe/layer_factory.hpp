@@ -100,9 +100,11 @@ class LayerRegistry {
 
  private:
   // Layer registry should never be instantiated - everything is done with its
+  // 注册层不能实例化，他只能是静态变量
   // static variables.
   LayerRegistry() {}
 
+  // 这个函数只负责将整个可用layer名称输出
   static string LayerTypeListString() {
     vector<string> layer_types = LayerTypeList();
     string layer_types_str;
@@ -121,6 +123,7 @@ class LayerRegistry {
 template <typename Dtype>
 class LayerRegisterer {
  public:
+  // 构造函数
   LayerRegisterer(const string& type,
                   shared_ptr<Layer<Dtype> > (*creator)(const LayerParameter&)) {
     // LOG(INFO) << "Registering layer type: " << type;
@@ -128,7 +131,8 @@ class LayerRegisterer {
   }
 };
 
-
+// 产生全局网络层的构造函数，输入Layer名称以及Layer指针，将该类注册到全局变量中
+// C++宏定义中，##表示宏连接，#表示字符串行化，例如 type为 Convolution, #type 表示 “Convolution”, A_##type表示 A_Convolution
 #define REGISTER_LAYER_CREATOR(type, creator)                                  \
   static LayerRegisterer<float> g_creator_f_##type(#type, creator<float>);     \
   static LayerRegisterer<double> g_creator_d_##type(#type, creator<double>)    \

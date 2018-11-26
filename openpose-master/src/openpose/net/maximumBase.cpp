@@ -41,6 +41,7 @@ namespace op
                         cv::Mat source(cv::Size(width, height), CV_32FC1, const_cast<T*>(sourcePtrOffsetted));
                         double minVal, maxVal;
                         cv::Point minLoc, maxLoc;
+                        // 基于opencv寻找HeatMap中的最大最小值
                         cv::minMaxLoc(source, &minVal, &maxVal, &minLoc, &maxLoc);
                         targetPtrOffsetted[0] = T(maxLoc.x);
                         targetPtrOffsetted[1] = T(maxLoc.y);

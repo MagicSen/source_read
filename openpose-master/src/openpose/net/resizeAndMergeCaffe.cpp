@@ -81,6 +81,7 @@ namespace op
                 // E.g., 100x100 image --> 200x200 --> 0-99 to 0-199 --> scale = 199/99 (not 2!)
                 // E.g., 101x101 image --> 201x201 --> scale = 2
                 // Test: pixel 0 --> 0, pixel 99 (ex 1) --> 199, pixel 100 (ex 2) --> 200
+                // 1 _ 71 _ imageheight / 8 _ imagewidth / 8 ==> 1 _ 71 _ imageheight _ imagewidth  (netFactor = 8, scaleFactor = 1)  
                 topShape[2] = intRound((topShape[2]*netFactor - 1.f) * scaleFactor) + 1;
                 topShape[3] = intRound((topShape[3]*netFactor - 1.f) * scaleFactor) + 1;
                 topBlob->Reshape(topShape);
@@ -158,6 +159,7 @@ namespace op
                 std::vector<const T*> sourcePtrs(bottom.size());
                 for (auto i = 0u ; i < sourcePtrs.size() ; i++)
                     sourcePtrs[i] = bottom[i]->cpu_data();
+                // mTopSize 1 _ 71 _ imageheight / 8 _ imagewidth / 8 ; 1 _ 71 _ imageheight _ imagewidth
                 resizeAndMergeCpu(top.at(0)->mutable_cpu_data(), sourcePtrs, mTopSize, mBottomSizes,
                                   mScaleRatios);
             #else

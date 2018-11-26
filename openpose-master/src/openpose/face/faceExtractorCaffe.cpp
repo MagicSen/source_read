@@ -239,11 +239,13 @@ namespace op
                             // cv::imshow("faceImage" + std::to_string(person), faceImage);
 
                             // 1. Caffe deep network
+                            // 运行caffe模型部分，输入人脸框，输出71维数据
                             upImpl->spNetCaffe->forwardPass(mFaceImageCrop);
 
                             // Reshape blobs
                             if (!upImpl->netInitialized)
                             {
+                                // reshape Caffe的输出层，使得与reshape层一致，可以理解为设置heatmap层的输入参数
                                 upImpl->netInitialized = true;
                                 reshapeFaceExtractorCaffe(upImpl->spResizeAndMergeCaffe, upImpl->spMaximumCaffe,
                                                           upImpl->spCaffeNetOutputBlob, upImpl->spHeatMapsBlob,
@@ -251,10 +253,12 @@ namespace op
                             }
 
                             // 2. Resize heat maps + merge different scales
+                            // 重新设置heat map大小，合并不同尺寸数据
                             upImpl->spResizeAndMergeCaffe->Forward(
                                 {upImpl->spCaffeNetOutputBlob.get()}, {upImpl->spHeatMapsBlob.get()});
 
                             // 3. Get peaks by Non-Maximum Suppression
+                            // 从HeatMap层，利用极大值抑制的方法得到最终输出坐标
                             upImpl->spMaximumCaffe->Forward(
                                 {upImpl->spHeatMapsBlob.get()}, {upImpl->spPeaksBlob.get()});
 

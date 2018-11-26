@@ -65,6 +65,7 @@ namespace op
                 // Top shape
                 std::vector<int> topShape{bottomShape};
                 topShape[1] = 1; // Unnecessary
+                // 根据关节点生成最终要输出的点的数目，1*70*3
                 topShape[2] = bottomShape[1]-1; // Number parts + bck - 1
                 topShape[3] = 3;  // X, Y, score
                 topBlob->Reshape(topShape);
