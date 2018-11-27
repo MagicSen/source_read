@@ -178,6 +178,7 @@ class Layer {
   /**
    * @brief Sets the loss associated with a top blob at a given index.
    */
+  // 根据loss_weight参数数目设置动态设置loss_，该变量用来存储每个顶层index对应的loss值
   inline void set_loss(const int top_index, const Dtype value) {
     if (loss_.size() <= top_index) {
       loss_.resize(top_index + 1, Dtype(0));
@@ -389,12 +390,16 @@ class Layer {
   inline void SetLossWeights(const vector<Blob<Dtype>*>& top) {
     const int num_loss_weights = layer_param_.loss_weight_size();
     if (num_loss_weights) {
+      // 要么指定各顶层的loss权重，要么不设定loss_weight
       CHECK_EQ(top.size(), num_loss_weights) << "loss_weight must be "
           "unspecified or specified once per top blob.";
       for (int top_id = 0; top_id < top.size(); ++top_id) {
         const Dtype loss_weight = layer_param_.loss_weight(top_id);
+        // 权重为0，跳过
         if (loss_weight == Dtype(0)) { continue; }
+        // 根据顶层网络id设置权重vector
         this->set_loss(top_id, loss_weight);
+        // 将该层所有顶层输出，设置权重参数为loss_weight. mutable表示可读写，无mutable表示只读
         const int count = top[top_id]->count();
         Dtype* loss_multiplier = top[top_id]->mutable_cpu_diff();
         caffe_set(count, loss_weight, loss_multiplier);

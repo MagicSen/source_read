@@ -14,15 +14,19 @@ void EuclideanLossLayer<Dtype>::Reshape(
   diff_.ReshapeLike(*bottom[0]);
 }
 
+// 前像传递计算误差
 template <typename Dtype>
 void EuclideanLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
+  // 得到一个batchsize的样本数量
   int count = bottom[0]->count();
+  // 预测值与label求差
   caffe_sub(
       count,
       bottom[0]->cpu_data(),
       bottom[1]->cpu_data(),
       diff_.mutable_cpu_data());
+  // 点乘求平方和
   Dtype dot = caffe_cpu_dot(count, diff_.cpu_data(), diff_.cpu_data());
   Dtype loss = dot / bottom[0]->num() / Dtype(2);
   top[0]->mutable_cpu_data()[0] = loss;
@@ -33,14 +37,18 @@ void EuclideanLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
   for (int i = 0; i < 2; ++i) {
     if (propagate_down[i]) {
+      // label可能在第一个layer也可能在第二个layer，根据是否可以BP，判断label在哪个layer，并且设置权重保证向梯度减小的方向递归
+      // bottom[i]->num() 返回的是batchsize
       const Dtype sign = (i == 0) ? 1 : -1;
       const Dtype alpha = sign * top[0]->cpu_diff()[0] / bottom[i]->num();
+      // b = alpha * a + beta * b， b = 0
+      // b = alpha * a
       caffe_cpu_axpby(
           bottom[i]->count(),              // count
           alpha,                              // alpha
-          diff_.cpu_data(),                   // a
+          diff_.cpu_data(),                   // a, diff中存储误差信息
           Dtype(0),                           // beta
-          bottom[i]->mutable_cpu_diff());  // b
+          bottom[i]->mutable_cpu_diff());  // b，向下传递diff误差，乘以权重
     }
   }
 }
