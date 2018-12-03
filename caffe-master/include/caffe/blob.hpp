@@ -12,7 +12,7 @@
 const int kMaxBlobAxes = 32;
 
 namespace caffe {
-
+// Blob 是一个基于同步的封装接口，是网络中层层之间，Solver中传递的参数
 /**
  * @brief A wrapper around SyncedMemory holders serving as the basic
  *        computational unit through which Layer%s, Net%s, and Solver%s
@@ -27,6 +27,7 @@ class Blob {
        : data_(), diff_(), count_(0), capacity_(0) {}
 
   /// @brief Deprecated; use <code>Blob(const vector<int>& shape)</code>.
+  // 目前有四个维度，batchsize, channels, height, width, 注意这里于opencv排列顺序不一致，从opencv读取图像输入caffe时需要注意重新排列
   explicit Blob(const int num, const int channels, const int height,
       const int width);
   explicit Blob(const vector<int>& shape);

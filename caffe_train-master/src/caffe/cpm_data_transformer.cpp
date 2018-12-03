@@ -241,6 +241,7 @@ template<typename Dtype> CPMDataTransformer<Dtype>::CPMDataTransformer(const CPM
   }
   LOG(INFO) << "CPMDataTransformer constructor done.";
   np_in_lmdb = param_.np_in_lmdb();
+  // 关节总数
   np = param_.num_parts();
   is_table_set = false;
 }
@@ -449,6 +450,7 @@ template<typename Dtype> void CPMDataTransformer<Dtype>::Transform_nv(const Datu
   CPUTimer timer1;
   timer1.Start();
   //before any transformation, get the image from datum
+  // 初始化mask，背景初始化为全1，keypoint初始化为全0
   Mat img = Mat::zeros(datum_height, datum_width, CV_8UC3);
   Mat mask_all, mask_miss;
   if(mode >= 5){
@@ -458,6 +460,7 @@ template<typename Dtype> void CPMDataTransformer<Dtype>::Transform_nv(const Datu
     mask_all = Mat::zeros(datum_height, datum_width, CV_8UC1);
   }
 
+  // offset 为图像大小
   int offset = img.rows * img.cols;
   int dindex;
   Dtype d_element;
@@ -596,16 +599,20 @@ template<typename Dtype> void CPMDataTransformer<Dtype>::Transform_nv(const Datu
     for (int g_y = 0; g_y < grid_y; g_y++){
       for (int g_x = 0; g_x < grid_x; g_x++){
         for (int i = 0; i < np; i++){
-          float weight = float(mask_miss_aug.at<uchar>(g_y, g_x)) /255; //mask_miss_aug.at<uchar>(i, j); 
+          // 根据mask图像填充节点的heat_weight
+          float weight = float(mask_miss_aug.at<uchar>(g_y, g_x)) / 255; //mask_miss_aug.at<uchar>(i, j); 
+          // 需要确认Visible每个值的含义
           if (meta.joint_self.isVisible[i] != 3){
             transformed_label[i*channelOffset + g_y*grid_x + g_x] = weight;
           }
         }  
         // background channel
         if(mode == 5){
+          // 填充背景的heat_weight
           transformed_label[np*channelOffset + g_y*grid_x + g_x] = float(mask_miss_aug.at<uchar>(g_y, g_x)) /255;
         }
         if(mode > 5){
+          // 根据不同模式，如果加上向量场就需要这样操作，否则直接填充mask/255的结果
           transformed_label[np*channelOffset + g_y*grid_x + g_x] = 1;
           transformed_label[(2*np+1)*channelOffset + g_y*grid_x + g_x] = float(mask_all_aug.at<uchar>(g_y, g_x)) /255;
         }
@@ -675,12 +682,13 @@ Size CPMDataTransformer<Dtype>::augmentation_croppad(Mat& img_src, Mat& img_dst,
 
   //LOG(INFO) << "Size of img_temp is " << img_temp.cols << " " << img_temp.rows;
   //LOG(INFO) << "ROI is " << x_offset << " " << y_offset << " " << min(800, img_temp.cols) << " " << min(256, img_temp.rows);
+  // 添加随机中心偏移量
   Point2i center = meta.objpos + Point2f(x_offset, y_offset);
   int offset_left = -(center.x - (crop_x/2));
   int offset_up = -(center.y - (crop_y/2));
   // int to_pad_right = max(center.x + (crop_x - crop_x/2) - img_src.cols, 0);
   // int to_pad_down = max(center.y + (crop_y - crop_y/2) - img_src.rows, 0);
-  
+  // 初始化图像
   img_dst = Mat::zeros(crop_y, crop_x, CV_8UC3) + Scalar(128,128,128);
   mask_miss_aug = Mat::zeros(crop_y, crop_x, CV_8UC1) + Scalar(255); //for MPI, COCO with Scalar(255);
   mask_all_aug = Mat::zeros(crop_y, crop_x, CV_8UC1);
@@ -688,6 +696,7 @@ Size CPMDataTransformer<Dtype>::augmentation_croppad(Mat& img_src, Mat& img_dst,
     for(int j=0;j<crop_x;j++){ //i,j on cropped
       int coord_x_on_img = center.x - crop_x/2 + j;
       int coord_y_on_img = center.y - crop_y/2 + i;
+      // 判断是否在平面内，应该是先计算mask然后图像增广
       if(onPlane(Point(coord_x_on_img, coord_y_on_img), Size(img_src.cols, img_src.rows))){
         img_dst.at<Vec3b>(i,j) = img_src.at<Vec3b>(coord_y_on_img, coord_x_on_img);
         if(mode>4){
@@ -1017,6 +1026,7 @@ float CPMDataTransformer<Dtype>::augmentation_rotate(Mat& img_src, Mat& img_dst,
   return degree;
 }
 
+// 为图像填充高斯分布的heatmap，这里的center表示原图中的坐标，stride表示原图的缩放比例，sigma = 7.0 默认高斯参数
 template<typename Dtype>
 void CPMDataTransformer<Dtype>::putGaussianMaps(Dtype* entry, Point2f center, int stride, int grid_x, int grid_y, float sigma){
   //LOG(INFO) << "putGaussianMaps here we start for " << center.x << " " << center.y;
@@ -1027,6 +1037,7 @@ void CPMDataTransformer<Dtype>::putGaussianMaps(Dtype* entry, Point2f center, in
       float y = start + g_y * stride;
       float d2 = (x-center.x)*(x-center.x) + (y-center.y)*(y-center.y);
       float exponent = d2 / 2.0 / sigma / sigma;
+      // 判断所给点到图像的距离，该距离计算是基于实际图像尺寸的大小计算的
       if(exponent > 4.6052){ //ln(100) = -ln(1%)
         continue;
       }
@@ -1135,17 +1146,28 @@ void CPMDataTransformer<Dtype>::putVecMaps(Dtype* entryX, Dtype* entryY, Mat& co
 
 template<typename Dtype>
 void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& img_aug, MetaData meta) {
+  // crop后图像的尺寸
   int rezX = img_aug.cols;
   int rezY = img_aug.rows;
+  // 相对原图的压缩尺寸
   int stride = param_.stride();
   int grid_x = rezX / stride;
   int grid_y = rezY / stride;
+  // 每个channel的指针相对位移
   int channelOffset = grid_y * grid_x;
+  // 区别背景/keypoint的标识符
   int mode = 5; // TO DO: make this as a parameter
+  // 一共 56 * 2 + 2 层
+  //   "vec_weight" ： 38
+  //   "heat_weight"： 19 ==> 18 joints + 1 background
+  //   "vec_temp"   ： 38
+  //   "heat_temp"  ： 19 ==> 18 joints + 1 background
 
+  // np = 56
   for (int g_y = 0; g_y < grid_y; g_y++){
     for (int g_x = 0; g_x < grid_x; g_x++){
       for (int i = np+1; i < 2*(np+1); i++){
+        // 如果是最后一层heat_temp，跳过, 否则全部初始化为0
         if (mode == 6 && i == (2*np + 1))
           continue;
         transformed_label[i*channelOffset + g_y*grid_x + g_x] = 0;
@@ -1153,13 +1175,20 @@ void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& 
     }
   }
 
-  if (np == 56){
+  if (np == 56){ // np == 56 执行这里
+    // 计算keypointheatmap
     for (int i = 0; i < 18; i++){
       Point2f center = meta.joint_self.joints[i];
+      // 判断keypoint是否可见，如果可见，生成高斯核的概率分布图
+      // MetaData结构体，用来存储指定数据集的关键点信息
       if(meta.joint_self.isVisible[i] <= 1){
+        // 第一个参数为数据下标平移量，此时位于第 i 个 keypoint, + np 表示 填充的 heatmap_temp, + 39 表示跳过vec_temp
+        // stride表示heatmap相对原图的缩放尺寸，grid_x, grid_y 表示heatmap的大小
+        // sigma 高斯核函数的参数
         putGaussianMaps(transformed_label + (i+np+39)*channelOffset, center, param_.stride(), 
                         grid_x, grid_y, param_.sigma()); //self
       }
+      // 生成其它人的高斯核函数
       for(int j = 0; j < meta.numOtherPeople; j++){ //for every other person
         Point2f center = meta.joint_others[j].joints[i];
         if(meta.joint_others[j].isVisible[i] <= 1){
@@ -1172,7 +1201,7 @@ void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& 
     int mid_1[19] = {2, 9,  10, 2,  12, 13, 2, 3, 4, 3,  2, 6, 7, 6,  2, 1,  1,  15, 16};
     int mid_2[19] = {9, 10, 11, 12, 13, 14, 3, 4, 5, 17, 6, 7, 8, 18, 1, 15, 16, 17, 18};
     int thre = 1;
-
+    // 计算keypoint点之间的向量场
     for(int i=0;i<19;i++){
       Mat count = Mat::zeros(grid_y, grid_x, CV_8UC1);
       Joints jo = meta.joint_self;
@@ -1192,14 +1221,17 @@ void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& 
       }
     }
 
+    // 计算背景
     //put background channel
     for (int g_y = 0; g_y < grid_y; g_y++){
       for (int g_x = 0; g_x < grid_x; g_x++){
         float maximum = 0;
         //second background channel
+        // 根据所有keypoint的map得到当前像素的最大值
         for (int i = np+39; i < np+57; i++){
           maximum = (maximum > transformed_label[i*channelOffset + g_y*grid_x + g_x]) ? maximum : transformed_label[i*channelOffset + g_y*grid_x + g_x];
         }
+        // 背景的heat_map = 1 - max(other_keypoint_heatmap)
         transformed_label[(2*np+1)*channelOffset + g_y*grid_x + g_x] = max(1.0-maximum, 0.0);
       }
     }
@@ -1207,6 +1239,7 @@ void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& 
   }
   
   else if (np == 43){
+    // 如果np为其他数据集的做法
     for (int i = 0; i < 15; i++){
       Point2f center = meta.joint_self.joints[i];
       if(meta.joint_self.isVisible[i] <= 1){
@@ -1260,6 +1293,7 @@ void CPMDataTransformer<Dtype>::generateLabelMap(Dtype* transformed_label, Mat& 
   }
 
   //visualize
+  // 可视化数据集
   if(1 && param_.visualize()){
     Mat label_map;
     for(int i = 0; i < 2*(np+1); i++){      
@@ -1548,6 +1582,7 @@ void CPMDataTransformer<Dtype>::Transform(const cv::Mat& cv_img,
   }
 }
 
+// 输入图像变换函数，包括随机剪裁、减去均值图像、镜像
 template<typename Dtype>
 void CPMDataTransformer<Dtype>::Transform(Blob<Dtype>* input_blob,
                                        Blob<Dtype>* transformed_blob) {

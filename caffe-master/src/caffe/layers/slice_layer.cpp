@@ -18,6 +18,7 @@ void SliceLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       std::back_inserter(slice_point_));
 }
 
+// 按照axis，将bottom层切分为若干top层
 template <typename Dtype>
 void SliceLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
@@ -46,7 +47,9 @@ void SliceLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
         << ", bottom[0] shape: " << bottom[0]->shape_string();
     int prev = 0;
     vector<int> slices;
+    // 根据slice_point切分指定axis
     for (int i = 0; i < slice_point_.size(); ++i) {
+      // 判断切分点大小是否合理
       CHECK_GT(slice_point_[i], prev);
       slices.push_back(slice_point_[i] - prev);
       prev = slice_point_[i];
