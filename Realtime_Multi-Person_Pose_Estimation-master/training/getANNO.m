@@ -26,9 +26,9 @@ for mode = 0:1
     coco_kpt = [];
     
     for i = 1:1:size(my_anno,2)
-        %% 遍历载入label的json文件，curr_id表示当前label所在的图像id，prev_id表示前一个label所在的图像id
+        %% �??历载入label的json文件，curr_id表示当�?label所在的图�?id，prev_id表示�?一个label所在的图�?id
         curr_id = my_anno(i).image_id;
-        %% p_cnt表示当前图像中标记的总人数，cnt表示总图像数
+        %% p_cnt表示当�?图�?中标记的总人数，cnt表示总图�?数
         if(curr_id == prev_id)
             p_cnt = p_cnt + 1;
         else
@@ -36,7 +36,7 @@ for mode = 0:1
             cnt = cnt + 1;
         end
         %% coco_kpt这样的结构
-        %% {"图像id1": {"人物1": {"bbox": xx, "segmentation": xx,... } "人物2": {"bbox": xx, "segmentation": xx,... }, ...}, "图像id2", {"人物1": {"bbox": xx, "segmentation": xx,... } "人物2": {"bbox": xx, "segmentation": xx,... }, ...}, ...}
+        %% {"图�?id1": {"人物1": {"bbox": xx, "segmentation": xx,... } "人物2": {"bbox": xx, "segmentation": xx,... }, ...}, "图�?id2", {"人物1": {"bbox": xx, "segmentation": xx,... } "人物2": {"bbox": xx, "segmentation": xx,... }, ...}, ...}
         coco_kpt(cnt).image_id = curr_id;
         coco_kpt(cnt).annorect(p_cnt).bbox = my_anno(i).bbox;
         coco_kpt(cnt).annorect(p_cnt).segmentation = my_anno(i).segmentation;
@@ -53,7 +53,7 @@ for mode = 0:1
         fprintf('%d/%d \n', i, size(my_anno, 2));
     end
     %%
-    %% 两个集合，一个评估集，一个训练集
+    %% 两个集�?�，一个评估集，一个训练集
     if mode == 0
         coco_val = coco_kpt;
         save('dataset/COCO/mat/coco_val.mat', 'coco_val');
