@@ -27,19 +27,23 @@ void MVNLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   eps_ = this->layer_param_.mvn_param().eps();
 }
 
+// 网络前向传递
 template <typename Dtype>
 void MVNLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
+  // 默认: num是batchsize * channels 
   int num;
   if (this->layer_param_.mvn_param().across_channels())
     num = bottom[0]->num();
   else
     num = bottom[0]->num() * bottom[0]->channels();
 
+  // count 是 shape四维相乘的结果
   int dim = bottom[0]->count() / num;
 
+  // y=alpha*A*x+beta*y, A = sum_multipliter, A的行数 = num, A的列数 = dim, alpha为1. / dim 
   // subtract mean
   caffe_cpu_gemv<Dtype>(CblasNoTrans, num, dim, 1. / dim, bottom_data,
       sum_multiplier_.cpu_data(), 0., mean_.mutable_cpu_data());  // EX
