@@ -67,6 +67,7 @@ void weighted_delta_cpu(float *a, float *b, float *s, float *da, float *db, floa
 
 void shortcut_cpu(int batch, int w1, int h1, int c1, float *add, int w2, int h2, int c2, float s1, float s2, float *out)
 {
+    // 融合两层，两层的长宽需要等比例，如果不等比例需要下采样
     int stride = w1/w2;
     int sample = w2/w1;
     assert(stride == h1/h2);
@@ -82,6 +83,7 @@ void shortcut_cpu(int batch, int w1, int h1, int c1, float *add, int w2, int h2,
         for(k = 0; k < minc; ++k){
             for(j = 0; j < minh; ++j){
                 for(i = 0; i < minw; ++i){
+                    // 设置两层融合的权重，分别为是s1, s2
                     int out_index = i*sample + w2*(j*sample + h2*(k + c2*b));
                     int add_index = i*stride + w1*(j*stride + h1*(k + c1*b));
                     out[out_index] = s1*out[out_index] + s2*add[add_index];

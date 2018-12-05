@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+// 将多路输入合并入输出，按照channels合并
 route_layer make_route_layer(int batch, int n, int *input_layers, int *input_sizes)
 {
     fprintf(stderr,"route ");
@@ -73,6 +74,7 @@ void resize_route_layer(route_layer *l, network *net)
 
 void forward_route_layer(const route_layer l, network net)
 {
+    // 每一层联合拷贝
     int i, j;
     int offset = 0;
     for(i = 0; i < l.n; ++i){

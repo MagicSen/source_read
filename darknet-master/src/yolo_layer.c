@@ -10,17 +10,20 @@
 #include <string.h>
 #include <stdlib.h>
 
+// Yolo层
 layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int classes)
 {
     int i;
     layer l = {0};
     l.type = YOLO;
 
+    // n: 实际使用的anchor box数目 3, total: 总anchor box数目 9, h, w 都是上层传下来的参数, 应该是grid_h, grid_w
     l.n = n;
     l.total = total;
     l.batch = batch;
     l.h = h;
     l.w = w;
+    // yolo层输出: channels 数目等于 anchor box数目 * (类别数 + x, y, w, h + confidence)
     l.c = n*(classes + 4 + 1);
     l.out_w = l.w;
     l.out_h = l.h;
@@ -32,16 +35,20 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
     else{
         l.mask = calloc(n, sizeof(int));
         for(i = 0; i < n; ++i){
+            // 未输入mask, 则初始化 mask为 0,1,2,3...8
             l.mask[i] = i;
         }
     }
     l.bias_updates = calloc(n*2, sizeof(float));
     l.outputs = h*w*n*(classes + 4 + 1);
     l.inputs = l.outputs;
+    // 每个图像最多识别90个框
     l.truths = 90*(4 + 1);
+    // 创建内部缓存
     l.delta = calloc(batch*l.outputs, sizeof(float));
     l.output = calloc(batch*l.outputs, sizeof(float));
     for(i = 0; i < total*2; ++i){
+        // biases初始化为0.5, 之后自动填充为预设的anchor
         l.biases[i] = .5;
     }
 
@@ -80,9 +87,38 @@ void resize_yolo_layer(layer *l, int w, int h)
 #endif
 }
 
+// 根据网络输入层数据以及位置坐标，得到矩形框，矩形框: [x, y, w, h]
+// 输入：
+//      x：      上层网络
+//      biases:  anchor box的尺寸，对应取第6,7,8个anchor
+//      n：      确定取第几个anchor的下标
+//      index:   输入层网络下标
+//      i：      输入层x下标
+//      j：      输入层y下标
+//      lw：     输入层width
+//      lh：     输入层height
+//      w：      图像的width
+//      h：      图像的height
+//      stride： 输入层一个channel的步长: lw*lh
 box get_yolo_box(float *x, float *biases, int n, int index, int i, int j, int lw, int lh, int w, int h, int stride)
 {
     box b;
+    // 4个channel, 1对应x, 2对应y, 3对应width, 4对应height
+    // 论文中:
+    //          x = delta(tx) + cx
+    //          y = delta(ty) + cy
+    //          w = pw * exp(tw)
+    //          h = ph * exp(th)
+    // 其中：
+    //          cx = i
+    //          cy = j
+    //          tx = x[index + 0 * stride]
+    //          ty = x[index + 1 * stride]
+    //          pw = biases[2*n]            // 预先设置的anchor_box的width与height
+    //          ph = biases[2*n + 1]
+    //          tw = x[index + 2 * stride]
+    //          th = y[index + 3 * stride]
+    // 此处除以lw, lh, w, h为框的归一化操作，为了与ground_truth直接比较
     b.x = (i + x[index + 0*stride]) / lw;
     b.y = (j + x[index + 1*stride]) / lh;
     b.w = exp(x[index + 2*stride]) * biases[2*n]   / w;
@@ -90,11 +126,27 @@ box get_yolo_box(float *x, float *biases, int n, int index, int i, int j, int lw
     return b;
 }
 
+// 计算框的残差
+// 输入：
+//      truth：  真实框
+//      x：      预测值
+//      biases： anchor box的尺寸
+//      n：      节点下标
+//      index：  预测层下标
+//      i：      grid_width 下标
+//      j：      grid_height 下标
+//      lw：     grid_width
+//      lh：     grid_height
+//      w：      图像宽
+//      h：      图像高
+//      delta：  残差指针
+//      scale：  学习尺度 = 2 - 真实框的w * h 
+//      stride： 步长
 float delta_yolo_box(box truth, float *x, float *biases, int n, int index, int i, int j, int lw, int lh, int w, int h, float *delta, float scale, int stride)
 {
     box pred = get_yolo_box(x, biases, n, index, i, j, lw, lh, w, h, stride);
     float iou = box_iou(pred, truth);
-
+    // 反向计算求差
     float tx = (truth.x*lw - i);
     float ty = (truth.y*lh - j);
     float tw = log(truth.w*w / biases[2*n]);
@@ -107,28 +159,42 @@ float delta_yolo_box(box truth, float *x, float *biases, int n, int index, int i
     return iou;
 }
 
-
+// 计算类别误差
+// 输入：
+//      delta：  误差项
+//      index：  预测类别的下标
+//      class：  框的类别
+//      classes：总类别数
+//      stride： 类别步长
+//      avg_cat：0
 void delta_yolo_class(float *output, float *delta, int index, int class, int classes, int stride, float *avg_cat)
 {
     int n;
     if (delta[index]){
+        // 设置confidence为 1 - 第n个类的概率
         delta[index + stride*class] = 1 - output[index + stride*class];
         if(avg_cat) *avg_cat += output[index + stride*class];
         return;
     }
     for(n = 0; n < classes; ++n){
+        // 设置其他类别的残差，对于其他类别，这个类为背景
         delta[index + stride*n] = ((n == class)?1 : 0) - output[index + stride*n];
         if(n == class && avg_cat) *avg_cat += output[index + stride*n];
     }
 }
 
+// l为该层的引用，batch为第几波数据，location为具体位置，entry为具体nchannel的偏于量
 static int entry_index(layer l, int batch, int location, int entry)
 {
+    // n表示第几个nchannel, loc表示位于这个channel的具体位置
     int n =   location / (l.w*l.h);
     int loc = location % (l.w*l.h);
+    // 返回输出层的下标
     return batch*l.outputs + n*l.w*l.h*(4+l.classes+1) + entry*l.w*l.h + loc;
 }
 
+
+// Yolo正向传递
 void forward_yolo_layer(const layer l, network net)
 {
     int i,j,b,t,n;
@@ -145,6 +211,7 @@ void forward_yolo_layer(const layer l, network net)
     }
 #endif
 
+    // 初始化delta为全0
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     if(!net.train) return;
     float avg_iou = 0;
@@ -156,36 +223,52 @@ void forward_yolo_layer(const layer l, network net)
     int count = 0;
     int class_count = 0;
     *(l.cost) = 0;
+    // 遍历上层输入
     for (b = 0; b < l.batch; ++b) {
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
+                // 此处的n为anchor的数目，这里表示有3个anchor
                 for (n = 0; n < l.n; ++n) {
+                    // 得到grid_w,grid_h中某个节点对应回归的矩形框
                     int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
                     box pred = get_yolo_box(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.w*l.h);
                     float best_iou = 0;
                     int best_t = 0;
+                    // 比较选择iou最大的矩形框, 每个图像最多识别90个框，因此ground_truth对应最多有90个，实际有很多为0
                     for(t = 0; t < l.max_boxes; ++t){
+                        // 得到该grid_w,grid_h中某个节点下对应的坐标框
+                        // 第一个参数：第一项net.truth为label的头指针，第二项为一个图像内部框的偏移量，第三项为第几个图像
+                        // 第二个参数：channel的步长
                         box truth = float_to_box(net.truth + t*(4 + 1) + b*l.truths, 1);
                         if(!truth.x) break;
+                        // 计算预测框与真实框的IOU
                         float iou = box_iou(pred, truth);
                         if (iou > best_iou) {
                             best_iou = iou;
                             best_t = t;
                         }
                     }
+                    // 第5个nchannels为检测框类别的confidence
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 4);
                     avg_anyobj += l.output[obj_index];
+                    // 默认delta为 -l.output[obj_index]
                     l.delta[obj_index] = 0 - l.output[obj_index];
+                    // 默认ignore_thresh = 0.5
                     if (best_iou > l.ignore_thresh) {
+                        // 如果iou满足ignore_thresh，忽略
                         l.delta[obj_index] = 0;
                     }
+                    // 计算类别误差, 默认 truth_thresh = 1.0
                     if (best_iou > l.truth_thresh) {
+                        // 如果best_iou满足truth_thresh，则delta为 1 - l.output[obj_index] 
                         l.delta[obj_index] = 1 - l.output[obj_index];
-
+                        // 得到这个框对应的类别
                         int class = net.truth[best_t*(4 + 1) + b*l.truths + 4];
                         if (l.map) class = l.map[class];
+                        // 得到预测类别的下标
                         int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 4 + 1);
                         delta_yolo_class(l.output, l.delta, class_index, class, l.classes, l.w*l.h, 0);
+                        // 得到iou最大的类别框
                         box truth = float_to_box(net.truth + best_t*(4 + 1) + b*l.truths, 1);
                         delta_yolo_box(truth, l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.delta, (2-truth.w*truth.h), l.w*l.h);
                     }

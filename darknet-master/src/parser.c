@@ -298,6 +298,7 @@ int *parse_yolo_mask(char *a, int *num)
             mask[i] = val;
             a = strchr(a, ',')+1;
         }
+        // 修改num为3
         *num = n;
     }
     return mask;
@@ -310,6 +311,7 @@ layer parse_yolo(list *options, size_params params)
     int num = total;
 
     char *a = option_find_str(options, "mask", 0);
+    // 这里修改num为3，因为给定mask为 6, 7, 8
     int *mask = parse_yolo_mask(a, &num);
     layer l = make_yolo_layer(params.batch, params.w, params.h, num, total, mask, classes);
     assert(l.outputs == params.inputs);
@@ -323,7 +325,7 @@ layer parse_yolo(list *options, size_params params)
 
     char *map_file = option_find_str(options, "map", 0);
     if (map_file) l.map = read_map(map_file);
-
+    // 得到anchor的width以及height
     a = option_find_str(options, "anchors", 0);
     if(a){
         int len = strlen(a);
@@ -739,6 +741,7 @@ int is_network(section *s)
             || strcmp(s->type, "[network]")==0);
 }
 
+// 载入配置好的网络参数，网络参数包括训练算法的参数
 network *parse_network_cfg(char *filename)
 {
     list *sections = read_cfg(filename);

@@ -112,6 +112,7 @@ typedef struct network network;
 struct layer;
 typedef struct layer layer;
 
+// 设置基础layer结构
 struct layer{
     LAYER_TYPE type;
     ACTIVATION activation;
@@ -530,7 +531,7 @@ typedef struct matrix{
     float **vals;
 } matrix;
 
-
+// darknet基本数据结构
 typedef struct{
     int w, h;
     matrix X;

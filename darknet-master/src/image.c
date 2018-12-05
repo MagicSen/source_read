@@ -605,7 +605,7 @@ image make_empty_image(int w, int h, int c)
     out.c = c;
     return out;
 }
-
+// 申请图像空间
 image make_image(int w, int h, int c)
 {
     image out = make_empty_image(w,h,c);

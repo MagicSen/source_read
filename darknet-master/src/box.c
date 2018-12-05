@@ -88,6 +88,7 @@ void do_nms_sort(detection *dets, int total, int classes, float thresh)
     }
 }
 
+// 给定某一个channels的坐标，返回对应该坐标下的ground_truth，stride为单个channels的间隔
 box float_to_box(float *f, int stride)
 {
     box b = {0};
@@ -176,6 +177,7 @@ float box_union(box a, box b)
     return u;
 }
 
+// 求IOU，交集/并集
 float box_iou(box a, box b)
 {
     return box_intersection(a, b)/box_union(a, b);

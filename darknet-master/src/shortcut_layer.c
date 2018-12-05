@@ -5,12 +5,14 @@
 
 #include <stdio.h>
 #include <assert.h>
-
+// 创建shortcut layer
 layer make_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int h2, int c2)
 {
+    // 替代ResNet的连接方式
     fprintf(stderr, "res  %3d                %4d x%4d x%4d   ->  %4d x%4d x%4d\n",index, w2,h2,c2, w,h,c);
     layer l = {0};
     l.type = SHORTCUT;
+    // 设置输入输出尺寸
     l.batch = batch;
     l.w = w2;
     l.h = h2;
@@ -19,13 +21,16 @@ layer make_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int
     l.out_h = h;
     l.out_c = c;
     l.outputs = w*h*c;
+    // 输入输出尺寸一致
     l.inputs = l.outputs;
-
+    // 网络中位于第几层，表示系数
     l.index = index;
 
+    // 申请该层训练所需的空间，输出数据空间，输出残差数据空间
     l.delta =  calloc(l.outputs*batch, sizeof(float));
     l.output = calloc(l.outputs*batch, sizeof(float));;
 
+    // 设置前向后向传递函数
     l.forward = forward_shortcut_layer;
     l.backward = backward_shortcut_layer;
     #ifdef GPU
@@ -40,6 +45,7 @@ layer make_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int
 
 void resize_shortcut_layer(layer *l, int w, int h)
 {
+    // 重新设置网络尺寸
     assert(l->w == l->out_w);
     assert(l->h == l->out_h);
     l->w = l->out_w = w;

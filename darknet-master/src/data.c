@@ -135,7 +135,7 @@ matrix load_image_augment_paths(char **paths, int n, int min, int max, int size,
     return X;
 }
 
-
+// boxes
 box_label *read_boxes(char *filename, int *n)
 {
     FILE *file = fopen(filename, "r");
@@ -166,6 +166,7 @@ box_label *read_boxes(char *filename, int *n)
     return boxes;
 }
 
+// 随机打乱检测框
 void randomize_boxes(box_label *b, int n)
 {
     int i;
@@ -457,8 +458,10 @@ void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, 
     find_replace(labelpath, ".JPEG", ".txt", labelpath);
     int count = 0;
     box_label *boxes = read_boxes(labelpath, &count);
+    // 随机打乱检测框，并且做一些坐标的逆变换
     randomize_boxes(boxes, count);
     correct_boxes(boxes, count, dx, dy, sx, sy, flip);
+    // 一个图像最多检测num_boxes个检测框
     if(count > num_boxes) count = num_boxes;
     float x,y,w,h;
     int id;
@@ -473,10 +476,11 @@ void fill_truth_detection(char *path, int num_boxes, float *truth, int classes, 
         id = boxes[i].id;
 
         if ((w < .001 || h < .001)) {
+            // 检测框太小，剔除，sub表示剔除的候选框数目
             ++sub;
             continue;
         }
-
+        // 多了一维id, id就对应class类别
         truth[(i-sub)*5+0] = x;
         truth[(i-sub)*5+1] = y;
         truth[(i-sub)*5+2] = w;
@@ -1032,9 +1036,11 @@ data load_data_swag(char **paths, int n, int classes, float jitter)
 
     return d;
 }
-
+// 构造detection数据
+// n 为图像总数
 data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, int classes, float jitter, float hue, float saturation, float exposure)
 {
+    // 随机取文件
     char **random_paths = get_random_paths(paths, n, m);
     int i;
     data d = {0};
@@ -1043,42 +1049,52 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int boxes, in
     d.X.rows = n;
     d.X.vals = calloc(d.X.rows, sizeof(float*));
     d.X.cols = h*w*3;
-
+    // 创建label值，这里填充为n个图像，每个图像为x, y, w, h,confidence
+    // n 行，5*boxes列
+    // 一副图像最多有 5 * boxes个框
     d.y = make_matrix(n, 5*boxes);
     for(i = 0; i < n; ++i){
+        // 载入原始图像
         image orig = load_image_color(random_paths[i], 0, 0);
+        // 获得图像尺寸
         image sized = make_image(w, h, orig.c);
         fill_image(sized, .5);
 
+        // 图像等比例缩放, yolo此处为0.3，得到缩放后w,h的比例
         float dw = jitter * orig.w;
         float dh = jitter * orig.h;
 
+        // 随机宽与高的压缩比
         float new_ar = (orig.w + rand_uniform(-dw, dw)) / (orig.h + rand_uniform(-dh, dh));
-        //float scale = rand_uniform(.25, 2);
+        // float scale = rand_uniform(.25, 2);
+        // 尺度变化固定为1
         float scale = 1;
 
         float nw, nh;
-
+        // 此处scale为1，修改宽高比例为new_ar 
+        // 保证长边的同时，扩大另外一条边
         if(new_ar < 1){
+            // 高 > 宽
             nh = scale * h;
             nw = nh * new_ar;
         } else {
+            // 宽 > 高，
             nw = scale * w;
             nh = nw / new_ar;
         }
-
+        // 随机均匀分布dx, dy
         float dx = rand_uniform(0, w - nw);
         float dy = rand_uniform(0, h - nh);
-
+        // 插值构造图像
         place_image(orig, nw, nh, dx, dy, sized);
-
+        // 做图像增广，曝光，畸变等操作
         random_distort_image(sized, hue, saturation, exposure);
-
+        // 图像镜像
         int flip = rand()%2;
         if(flip) flip_image(sized);
         d.X.vals[i] = sized.data;
 
-
+        // 填充检测框真值
         fill_truth_detection(random_paths[i], boxes, d.y.vals[i], classes, flip, -dx/w, -dy/h, nw/w, nh/h);
 
         free_image(orig);
