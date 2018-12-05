@@ -275,16 +275,20 @@ void forward_yolo_layer(const layer l, network net)
                 }
             }
         }
+        // 为什么还需要匹配一次呢？
         for(t = 0; t < l.max_boxes; ++t){
             box truth = float_to_box(net.truth + t*(4 + 1) + b*l.truths, 1);
 
             if(!truth.x) break;
+            // 得到一个图像中的最大IOU矩形框
             float best_iou = 0;
             int best_n = 0;
+            // 真实值相对grid_width，grid_height的位置
             i = (truth.x * l.w);
             j = (truth.y * l.h);
             box truth_shift = truth;
             truth_shift.x = truth_shift.y = 0;
+            // 适配其他未采用的anchor box，匹配最优iou
             for(n = 0; n < l.total; ++n){
                 box pred = {0};
                 pred.w = l.biases[2*n]/net.w;
@@ -295,7 +299,7 @@ void forward_yolo_layer(const layer l, network net)
                     best_n = n;
                 }
             }
-
+            // 如果最佳匹配的mask在所选的anchor box中，更新残差矩阵
             int mask_n = int_index(l.mask, best_n, l.n);
             if(mask_n >= 0){
                 int box_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 0);
@@ -318,6 +322,7 @@ void forward_yolo_layer(const layer l, network net)
             }
         }
     }
+    // sum(diff*diff)
     *(l.cost) = pow(mag_array(l.delta, l.outputs * l.batch), 2);
     printf("Region %d Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, .5R: %f, .75R: %f,  count: %d\n", net.index, avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, recall75/count, count);
 }
