@@ -225,6 +225,7 @@ void forward_yolo_layer(const layer l, network net)
     *(l.cost) = 0;
     // 遍历上层输入
     for (b = 0; b < l.batch; ++b) {
+        // 修改残差的值
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
                 // 此处的n为anchor的数目，这里表示有3个anchor
@@ -234,12 +235,14 @@ void forward_yolo_layer(const layer l, network net)
                     box pred = get_yolo_box(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.w*l.h);
                     float best_iou = 0;
                     int best_t = 0;
+                    // Step 1: 找到该anchor box最匹配的类
                     // 比较选择iou最大的矩形框, 每个图像最多识别90个框，因此ground_truth对应最多有90个，实际有很多为0
                     for(t = 0; t < l.max_boxes; ++t){
                         // 得到该grid_w,grid_h中某个节点下对应的坐标框
                         // 第一个参数：第一项net.truth为label的头指针，第二项为一个图像内部框的偏移量，第三项为第几个图像
                         // 第二个参数：channel的步长
                         box truth = float_to_box(net.truth + t*(4 + 1) + b*l.truths, 1);
+                        // 一个图像内不可能都有max个矩形框，这里提前退出
                         if(!truth.x) break;
                         // 计算预测框与真实框的IOU
                         float iou = box_iou(pred, truth);
@@ -248,6 +251,7 @@ void forward_yolo_layer(const layer l, network net)
                             best_t = t;
                         }
                     }
+                    // Step 2：计算该anchor box最佳匹配的confidence
                     // 第5个nchannels为检测框类别的confidence
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 4);
                     avg_anyobj += l.output[obj_index];
@@ -258,6 +262,7 @@ void forward_yolo_layer(const layer l, network net)
                         // 如果iou满足ignore_thresh，忽略
                         l.delta[obj_index] = 0;
                     }
+                    // Step 3：如果best_iou满足阈值，设置class loss以及回归框loss
                     // 计算类别误差, 默认 truth_thresh = 1.0
                     if (best_iou > l.truth_thresh) {
                         // 如果best_iou满足truth_thresh，则delta为 1 - l.output[obj_index] 
@@ -276,6 +281,8 @@ void forward_yolo_layer(const layer l, network net)
             }
         }
         // 为什么还需要匹配一次呢？
+        // 上面是基于预测结果循环得到每个anchor box对应的最大iou
+        //  每幅图像真实检测框 + 匹配最大IOU的anchor box
         for(t = 0; t < l.max_boxes; ++t){
             box truth = float_to_box(net.truth + t*(4 + 1) + b*l.truths, 1);
 
@@ -300,6 +307,7 @@ void forward_yolo_layer(const layer l, network net)
                 }
             }
             // 如果最佳匹配的mask在所选的anchor box中，更新残差矩阵
+            // 残差矩阵二次匹配，修正delta的值
             int mask_n = int_index(l.mask, best_n, l.n);
             if(mask_n >= 0){
                 int box_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 0);
@@ -329,6 +337,7 @@ void forward_yolo_layer(const layer l, network net)
 
 void backward_yolo_layer(const layer l, network net)
 {
+   // 将yolo计算的残差留给下层
    axpy_cpu(l.batch*l.inputs, 1, l.delta, 1, net.delta, 1);
 }
 
