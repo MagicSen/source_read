@@ -131,7 +131,7 @@ box get_yolo_box(float *x, float *biases, int n, int index, int i, int j, int lw
 //      truth：  真实框
 //      x：      预测值
 //      biases： anchor box的尺寸
-//      n：      节点下标
+//      n：      采用anchor box的下标
 //      index：  预测层下标
 //      i：      grid_width 下标
 //      j：      grid_height 下标
@@ -170,6 +170,7 @@ float delta_yolo_box(box truth, float *x, float *biases, int n, int index, int i
 void delta_yolo_class(float *output, float *delta, int index, int class, int classes, int stride, float *avg_cat)
 {
     int n;
+    // 如果第一个类别刚好为正确样本，直接计算loss，返回
     if (delta[index]){
         // 设置confidence为 1 - 第n个类的概率
         delta[index + stride*class] = 1 - output[index + stride*class];
@@ -198,6 +199,7 @@ static int entry_index(layer l, int batch, int location, int entry)
 void forward_yolo_layer(const layer l, network net)
 {
     int i,j,b,t,n;
+    // 输入拷贝至输出
     memcpy(l.output, net.input, l.outputs*l.batch*sizeof(float));
 
 #ifndef GPU
