@@ -256,6 +256,7 @@ void forward_yolo_layer(const layer l, network net)
                     // Step 2：计算该anchor box最佳匹配的confidence
                     // 第5个nchannels为检测框类别的confidence
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 4);
+                    // 每个grid_w, grid_h 对应的confidence
                     avg_anyobj += l.output[obj_index];
                     // 默认delta为 -l.output[obj_index]
                     l.delta[obj_index] = 0 - l.output[obj_index];
@@ -265,6 +266,7 @@ void forward_yolo_layer(const layer l, network net)
                         l.delta[obj_index] = 0;
                     }
                     // Step 3：如果best_iou满足阈值，设置class loss以及回归框loss
+                    // don't use this branch
                     // 计算类别误差, 默认 truth_thresh = 1.0
                     if (best_iou > l.truth_thresh) {
                         // 如果best_iou满足truth_thresh，则delta为 1 - l.output[obj_index] 
@@ -282,7 +284,7 @@ void forward_yolo_layer(const layer l, network net)
                 }
             }
         }
-        // 为什么还需要匹配一次呢？
+        // 上面通过设置truth_thresh，使得上半部分的delta计算失效，为什么还需要匹配一次呢？
         // 上面是基于预测结果循环得到每个anchor box对应的最大iou
         //  每幅图像真实检测框 + 匹配最大IOU的anchor box
         for(t = 0; t < l.max_boxes; ++t){
@@ -316,12 +318,14 @@ void forward_yolo_layer(const layer l, network net)
                 float iou = delta_yolo_box(truth, l.output, l.biases, best_n, box_index, i, j, l.w, l.h, net.w, net.h, l.delta, (2-truth.w*truth.h), l.w*l.h);
 
                 int obj_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4);
+                // 得到该类的检测框对应的概率值
                 avg_obj += l.output[obj_index];
                 l.delta[obj_index] = 1 - l.output[obj_index];
 
                 int class = net.truth[t*(4 + 1) + b*l.truths + 4];
                 if (l.map) class = l.map[class];
                 int class_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4 + 1);
+                // 得到class的平均概率
                 delta_yolo_class(l.output, l.delta, class_index, class, l.classes, l.w*l.h, &avg_cat);
 
                 ++count;
