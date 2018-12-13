@@ -16,13 +16,17 @@ int openPoseDemo()
 {
     try
     {
+        // 设置日志等级
         op::log("Starting OpenPose demo...", op::Priority::High);
+        // 计时
         const auto timerBegin = std::chrono::high_resolution_clock::now();
 
         // logging_level
         op::check(0 <= FLAGS_logging_level && FLAGS_logging_level <= 255, "Wrong logging_level value.",
                   __LINE__, __FUNCTION__, __FILE__);
+        // 设置日志等级
         op::ConfigureLog::setPriorityThreshold((op::Priority)FLAGS_logging_level);
+        // 设置显示帧率等信息
         op::Profiler::setDefaultX(FLAGS_profile_speed);
         // // For debugging
         // // Print all logging messages
@@ -30,6 +34,7 @@ int openPoseDemo()
         // // Print out speed values faster
         // op::Profiler::setDefaultX(100);
 
+        // 获取camera分辨率，输入图像尺寸，输入网络尺寸，输入网络的人脸/手的图像尺寸
         // Applying user defined configuration - GFlags to program variables
         // cameraSize
         const auto cameraSize = op::flagsToPoint(FLAGS_camera_resolution, "-1x-1");
@@ -41,28 +46,35 @@ int openPoseDemo()
         const auto faceNetInputSize = op::flagsToPoint(FLAGS_face_net_resolution, "368x368 (multiples of 16)");
         // handNetInputSize
         const auto handNetInputSize = op::flagsToPoint(FLAGS_hand_net_resolution, "368x368 (multiples of 16)");
+        // 设置生产者类型，例如：camera，folder_name
         // producerType
         op::ProducerType producerType;
         std::string producerString;
         std::tie(producerType, producerString) = op::flagsToProducer(
             FLAGS_image_dir, FLAGS_video, FLAGS_ip_camera, FLAGS_camera, FLAGS_flir_camera, FLAGS_flir_camera_index);
+        // 载入姿态估计模型
         // poseModel
         const auto poseModel = op::flagsToPoseModel(FLAGS_model_pose);
         // JSON saving
         if (!FLAGS_write_keypoint.empty())
             op::log("Flag `write_keypoint` is deprecated and will eventually be removed."
                     " Please, use `write_json` instead.", op::Priority::Max);
+        // 设置关键点尺寸
         // keypointScale
         const auto keypointScale = op::flagsToScaleMode(FLAGS_keypoint_scale);
+        // 设置heatmap类型：背景，关节部位
         // heatmaps to add
         const auto heatMapTypes = op::flagsToHeatMaps(FLAGS_heatmaps_add_parts, FLAGS_heatmaps_add_bkg,
                                                       FLAGS_heatmaps_add_PAFs);
         const auto heatMapScale = op::flagsToHeatMapScaleMode(FLAGS_heatmaps_scale);
+        // 设置是否多目相机
         // >1 camera view?
         const auto multipleView = (FLAGS_3d || FLAGS_3d_views > 1 || FLAGS_flir_camera);
+        // 是否开启Google Logging
         // Enabling Google Logging
         const bool enableGoogleLogging = true;
 
+        // 设置OpenPose日志优先级
         // Configuring OpenPose
         op::log("Configuring OpenPose...", op::Priority::High);
         op::Wrapper opWrapper;
@@ -116,6 +128,7 @@ int openPoseDemo()
         op::log("Starting thread(s)...", op::Priority::High);
         opWrapper.exec();
 
+        // 统计耗时
         // Measuring total time
         const auto now = std::chrono::high_resolution_clock::now();
         const auto totalTimeSec = (double)std::chrono::duration_cast<std::chrono::nanoseconds>(now-timerBegin).count()
@@ -136,6 +149,7 @@ int openPoseDemo()
 int main(int argc, char *argv[])
 {
     // Parsing command line flags
+    // 主入口函数
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     // Running openPoseDemo

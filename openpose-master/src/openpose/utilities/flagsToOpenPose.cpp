@@ -109,7 +109,7 @@ namespace op
             return ScaleMode::PlusMinusOne;
         }
     }
-
+    // 设置图像生产者的来源
     ProducerType flagsToProducerType(const std::string& imageDirectory, const std::string& videoPath,
                                      const std::string& ipCameraPath, const int webcamIndex,
                                      const bool flirCamera)

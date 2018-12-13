@@ -7,6 +7,7 @@
 
 namespace op
 {
+    // 基于opencv的人脸检测类别接口
     class OP_API FaceDetectorOpenCV
     {
     public:
