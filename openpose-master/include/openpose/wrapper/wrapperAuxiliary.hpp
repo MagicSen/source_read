@@ -91,10 +91,12 @@ namespace op
         const std::array<std::vector<TWorker>, int(WorkerType::Size)>& userWs,
         const std::array<bool, int(WorkerType::Size)>& userWsOnNewThread)
     {
+        // 整个Openpose实际配置的处理入口
         try
         {
             log("", Priority::Low, __LINE__, __FUNCTION__, __FILE__);
 
+            // 设置图像生产者
             // Create producer
             auto producerSharedPtr = createProducer(
                 wrapperStructInput.producerType, wrapperStructInput.producerString,
@@ -105,6 +107,7 @@ namespace op
             auto wrapperStructPose = wrapperStructPoseTemp;
             auto multiThreadEnabled = multiThreadEnabledTemp;
 
+            // 用户配置
             // User custom workers
             const auto& userInputWs = userWs[int(WorkerType::Input)];
             const auto& userPostProcessingWs = userWs[int(WorkerType::PostProcessing)];
@@ -126,6 +129,7 @@ namespace op
             const auto renderOutputGpu = wrapperStructPose.renderMode == RenderMode::Gpu
                                             || wrapperStructFace.renderMode == RenderMode::Gpu
                                             || wrapperStructHand.renderMode == RenderMode::Gpu;
+            // 配置输出的渲染参数
             const auto renderFace = wrapperStructFace.enable && wrapperStructFace.renderMode != RenderMode::None;
             const auto renderHand = wrapperStructHand.enable && wrapperStructHand.renderMode != RenderMode::None;
             const auto renderHandGpu = wrapperStructHand.enable && wrapperStructHand.renderMode == RenderMode::Gpu;
@@ -344,6 +348,7 @@ namespace op
                 }
 
 
+                // 这里配置检测人脸的方法，可选两种方法，基于pose、基于opencv的方法
                 // Face extractor(s)
                 if (wrapperStructFace.enable)
                 {
@@ -358,10 +363,12 @@ namespace op
                     // OpenCV face detector
                     else
                     {
+                        // 添加额外代码，新增detection类别处理
                         log("Body keypoint detection is disabled. Hence, using OpenCV face detector (much less"
                             " accurate but faster).", Priority::High);
                         for (auto& wPose : poseExtractorsWs)
                         {
+                            // 设置facedetected
                             // 1 FaceDetectorOpenCV per thread, OpenCV face detector is not thread-safe
                             const auto faceDetectorOpenCV = std::make_shared<FaceDetectorOpenCV>(modelFolder);
                             wPose.emplace_back(

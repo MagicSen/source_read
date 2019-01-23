@@ -7,6 +7,7 @@ int nms_comparator(const void *pa, const void *pb)
 {
     detection a = *(detection *)pa;
     detection b = *(detection *)pb;
+    // 按某一类概率最高的候选框，排序
     float diff = 0;
     if(b.sort_class >= 0){
         diff = a.prob[b.sort_class] - b.prob[b.sort_class];
@@ -55,8 +56,10 @@ void do_nms_obj(detection *dets, int total, int classes, float thresh)
 }
 
 
+// nms 排序
 void do_nms_sort(detection *dets, int total, int classes, float thresh)
 {
+    // Step1: 剔除objectness为0的矩形框
     int i, j, k;
     k = total-1;
     for(i = 0; i <= k; ++i){
@@ -68,18 +71,21 @@ void do_nms_sort(detection *dets, int total, int classes, float thresh)
             --i;
         }
     }
+    // 重新设置总检测框数目
     total = k+1;
 
     for(k = 0; k < classes; ++k){
         for(i = 0; i < total; ++i){
             dets[i].sort_class = k;
         }
+        // 按照类内概率排序
         qsort(dets, total, sizeof(detection), nms_comparator);
         for(i = 0; i < total; ++i){
             if(dets[i].prob[k] == 0) continue;
             box a = dets[i].bbox;
             for(j = i+1; j < total; ++j){
                 box b = dets[j].bbox;
+                // 剔除同一个类内交叠区域较大的另一个框
                 if (box_iou(a, b) > thresh){
                     dets[j].prob[k] = 0;
                 }

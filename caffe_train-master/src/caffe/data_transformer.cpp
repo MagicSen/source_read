@@ -12,10 +12,12 @@
 
 namespace caffe {
 
+// 数据增广类型
 template<typename Dtype>
 DataTransformer<Dtype>::DataTransformer(const TransformationParameter& param,
     Phase phase)
     : param_(param), phase_(phase) {
+  // 检查是否需要使用mean_file
   // check if we want to use mean_file
   if (param_.has_mean_file()) {
     CHECK_EQ(param_.mean_value_size(), 0) <<
@@ -38,9 +40,11 @@ DataTransformer<Dtype>::DataTransformer(const TransformationParameter& param,
   }
 }
 
+// 数据增广
 template<typename Dtype>
 void DataTransformer<Dtype>::Transform(const Datum& datum,
                                        Dtype* transformed_data) {
+  // 载入增广参数
   const string& data = datum.data();
   const int datum_channels = datum.channels();
   const int datum_height = datum.height();
@@ -57,6 +61,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
   CHECK_GE(datum_height, crop_size);
   CHECK_GE(datum_width, crop_size);
 
+  // 读取均值文件
   Dtype* mean = NULL;
   if (has_mean_file) {
     CHECK_EQ(datum_channels, data_mean_.channels());
@@ -85,6 +90,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
     width = crop_size;
     // We only do random crop when we do training.
     if (phase_ == TRAIN) {
+      // 剪切图像，随机初始化剪切偏移量
       h_off = Rand(datum_height - crop_size + 1);
       w_off = Rand(datum_width - crop_size + 1);
     } else {
@@ -98,18 +104,22 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
   for (int c = 0; c < datum_channels; ++c) {
     for (int h = 0; h < height; ++h) {
       for (int w = 0; w < width; ++w) {
+        // 包括截取ROI的偏移
         data_index = (c * datum_height + h_off + h) * datum_width + w_off + w;
+        // 镜像处理
         if (do_mirror) {
           top_index = (c * height + h) * width + (width - 1 - w);
         } else {
           top_index = (c * height + h) * width + w;
         }
+        // 根据输入数据类型，得到数据
         if (has_uint8) {
           datum_element =
             static_cast<Dtype>(static_cast<uint8_t>(data[data_index]));
         } else {
           datum_element = datum.float_data(data_index);
         }
+        // 处理均值文件 / 均值图像
         if (has_mean_file) {
           transformed_data[top_index] =
             (datum_element - mean[data_index]) * scale;
@@ -118,6 +128,7 @@ void DataTransformer<Dtype>::Transform(const Datum& datum,
             transformed_data[top_index] =
               (datum_element - mean_values_[c]) * scale;
           } else {
+            // 增加亮度变化
             transformed_data[top_index] = datum_element * scale;
           }
         }

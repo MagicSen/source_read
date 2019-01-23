@@ -57,6 +57,7 @@ namespace op
          */
         void disableMultiThreading();
 
+        // 设置工作类别
         /**
          * Add an user-defined extra Worker for a desired task (input, output, ...).
          * @param workerType WorkerType to configure (e.g., Input, PostProcessing, Output).
@@ -65,7 +66,7 @@ namespace op
          * simply reuse existing threads (for light functions). Set to true if the performance time is unknown.
          */
         void setWorker(const WorkerType workerType, const TWorker& worker, const bool workerOnNewThread = true);
-
+        // 设置处理单元：人体姿态估计处理单元、人脸识别处理单元、手势识别处理单元，输入输出处理单元
         /**
          * It configures the pose parameters. Do not call for default values.
          */
@@ -200,6 +201,7 @@ namespace op
         const ThreadManagerMode mThreadManagerMode;
         ThreadManager<TDatumsSP> mThreadManager;
         bool mMultiThreadEnabled;
+        // 配置不同的检测封装器
         // Configuration
         WrapperStructPose mWrapperStructPose;
         WrapperStructFace mWrapperStructFace;
@@ -376,7 +378,7 @@ namespace op
             error(e.what(), __LINE__, __FUNCTION__, __FILE__);
         }
     }
-
+    // 调用ThreadManager配置管理进程
     template<typename TDatums, typename TDatumsSP, typename TWorker>
     void WrapperT<TDatums, TDatumsSP, TWorker>::exec()
     {

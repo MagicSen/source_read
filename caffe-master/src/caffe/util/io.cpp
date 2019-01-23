@@ -161,7 +161,7 @@ bool ReadFileToDatum(const string& filename, const int label,
     return false;
   }
 }
-
+// 基于OpenCV的工具从数据流转化为图像
 #ifdef USE_OPENCV
 cv::Mat DecodeDatumToCVMatNative(const Datum& datum) {
   cv::Mat cv_img;

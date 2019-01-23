@@ -34,19 +34,21 @@ void CPMDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   cpm_data_transformer_.reset(
      new CPMDataTransformer<Dtype>(cpm_transform_param_, this->phase_));
+  // 初始化数据转换层
   cpm_data_transformer_->InitRand();
 
  
   // Read a data point, and use it to initialize the top blob.
   Datum& datum = *(reader_.full().peek());
   LOG(INFO) << datum.height() << " " << datum.width() << " " << datum.channels();
-
+  // 是否彩色图像
   bool force_color = this->layer_param_.data_param().force_encoded_color();
   if ((force_color && DecodeDatum(&datum, true)) ||
       DecodeDatumNative(&datum)) {
     LOG(INFO) << "Decoding Datum";
   }
 
+  // 获取图像大小以及截取尺寸
   // image
   const int crop_size = this->layer_param_.cpm_transform_param().crop_size();
   const int batch_size = this->layer_param_.data_param().batch_size();
@@ -59,6 +61,7 @@ void CPMDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // this->transformed_data_.Reshape(1, 6, crop_size, crop_size);
   } 
   else {
+    // 根据参数resize原图
     const int height = this->phase_ != TRAIN ? datum.height() :
       this->layer_param_.cpm_transform_param().crop_size_y();
     const int width = this->phase_ != TRAIN ? datum.width() :
@@ -110,6 +113,7 @@ void CPMDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int batch_size = this->layer_param_.data_param().batch_size();
   const int crop_size = this->layer_param_.cpm_transform_param().crop_size();
   bool force_color = this->layer_param_.data_param().force_encoded_color();
+  // 此处为测试网络下batch_size的大小
   if (batch_size == 1 && crop_size == 0) {
     Datum& datum = *(reader_.full().peek());
     if (datum.encoded()) {
@@ -154,6 +158,7 @@ void CPMDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     }
     decod_time += timer.MicroSeconds();
 
+    // 这里执行数据增广，包括镜像、尺度、截取、旋转等
     // Apply data transformations (mirror, scale, crop...)
     timer.Start();
     const int offset_data = batch->data_.offset(item_id);
