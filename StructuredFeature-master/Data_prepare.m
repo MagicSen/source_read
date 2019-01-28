@@ -10,9 +10,11 @@ lmdb_dir = ['external/data/' name '/'];  % image writing dir
 pa = conf.pa;
 
 % -------------------- collect data -----------------------
+%% 划分数据，keypoints 重排列, 保存到cache/lsp/ 文件夹
 [pos_train, pos_val,neg_train, ~] = LSP_data_fconv(cachedir);
 
 % -------------------- clustering -----------------------
+%% 预处理，保存keypoints之间的聚类结果
 [pos_train,pos_val] = LSP_def_idx('lsp',pos_train,pos_val,13,pa,cachedir);
 
 % ------------------ generate data and label ------------------------

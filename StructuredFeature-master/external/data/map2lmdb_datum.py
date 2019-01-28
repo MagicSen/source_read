@@ -20,6 +20,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print 'Writing to leveldb {}.'.format(args.save_db)
+    # 要保存的db名称
     db = lmdb.open(args.save_db, max_dbs=2, map_size=1099511627776)
     txn = db.begin(write=True)
     maps = os.listdir(args.submap_dir)
@@ -36,9 +37,12 @@ if __name__ == '__main__':
         # except KeyError:
         # Make data blob
         datum = Datum()
+        # 载入Mat内的变量
         submap = sio.loadmat(os.path.join(args.submap_dir, cur_map))
         submap = submap[args.variable].astype('float')
         if submap.ndim == 3:
+            # 如果是3维变量，需要重新排列维数，从1、2、3 ==> 1、3、2 ==> 3、1、2
+            # 这里是指切换为caffe内部数据排列
             submap = submap.swapaxes(1,2).swapaxes(0,1).astype('float')
             datum.channels, datum.height, datum.width = submap.shape
         else:
@@ -70,6 +74,7 @@ if __name__ == '__main__':
     if n % 1000 != 0:
         txn.commit()
         print "Proccessed {} samples.".format(n)
+    # 求平均map
     img_mean /= len(maps)
     print "Totally proccessed {} samples.".format(n)
 

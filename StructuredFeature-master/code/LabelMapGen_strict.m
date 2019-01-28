@@ -1,3 +1,4 @@
+%% label生成，pos等于详情， labelsize = 42, 
 function LabelMapGen_strict(name,pos,labelsize,cache,lmdb_dir)
 
 conf = global_conf;
@@ -6,14 +7,19 @@ wtdir = [lmdb_dir name '_label/'];
 if ~isdir(wtdir)
     mkdir(wtdir);
 end
+%% 距离map, 长宽必须为奇数
 dist_map = label_distmap(cache,29); % the value should be odd
+%% 得到keypoint的数目
 dim3 = size(pos(2).joints,1);
 
+%% 计算label的heatmap
 if exist([wtdir sprintf('%06d.mat',length(pos))],'file')~=2
+    %% 遍历样本集
     for i = 1:length(pos)
         if mod(i,100)==0
             fprintf(1,'Generate label map: %d/%d\n',i,length(pos));
         end
+        %% 正样本处理
         if ~isempty(pos(i).joints)  %----- positive sample ------
             data_scale = pos(i).scale_x*pos(i).imrescale/2;
             map = joints2labelmap_lsp_stricter(pos(i),data_scale,labelsize,dist_map);

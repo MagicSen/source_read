@@ -66,6 +66,7 @@ catch
                 9  9  10  10  10  11  11 9   12  9   12  12 12  13  13 13  14  14];
             A = [1  1  1  1/2 1/2 1  1/2 1/2 1  2/3 1/3 1/3 2/3 1  1/2 1/2 1  1/2 1/2 1 ...
                 1  1/2 1/2 1  1/2 1/2 1  2/3 1/3 1/3 2/3 1  1/2 1/2 1  1/2 1/2 1];
+            %% 利用矩阵变换，从14 keypoints变换到26 keyponits
             Trans = full(sparse(I,J,A,26,14));
             mirror = [1,2,15,16,17,18,19,20,21,22,23,24,25,26,3,4,5,6,7,8,9,10,11,12,13,14];
         otherwise
@@ -88,6 +89,7 @@ catch
     assert(numel(unique(degree)) == numel(degree));
     pos_trainval = add_rotate(pos_trainval, degree);
     % -------- split train, val -----------------
+    %% 随机切分训练集与验证集
     val_id = randperm(numel(pos_trainval), 400);
     train_id = true(numel(pos_trainval), 1); train_id(val_id) = false;
     pos_train = pos_trainval(train_id); pos_val = pos_trainval(val_id);
@@ -100,6 +102,7 @@ catch
         error('Please downlad INRIA dataset');
     end
     num = numel(trainval_frs_neg);
+    %% 定义负样本结构体
     neg = struct('im', cell(num, 1), 'joints', cell(num, 1), ...
         'r_degree', cell(num, 1), 'isflip', cell(num,1));
     

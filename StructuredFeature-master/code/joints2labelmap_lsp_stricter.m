@@ -11,35 +11,45 @@ function [map,iminfo] = joints2labelmap_lsp_stricter(iminfo,gtscale,labelsize,di
 %               (c) rest points may use in future (use 1)
 %               (d) If you BP one pixel, BP it on all channels!!!!!!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 得到map的行于列
 dim1 = labelsize(1);
 dim2 = labelsize(2);
 
 % mask = zeros(dim1,dim2);
+%% keypoints 关键点数目
 joints = iminfo.joints;
+%% 得到keypoint的整数坐标，外加一些偏移量
 label_joints = round((joints+4)/8);
 
 pad = 10;
+%% map外加10*2的边界，初始化为全零
 map = zeros(dim1+pad*2,dim2+pad*2,size(label_joints,1)); % pading zeros around
+%% joint需要增加pad的偏移量
 label_joints = label_joints+pad; % shift label paded pixels
+%% gtscale是原始图像缩放后的比率，这里heatmap尺寸为原始图像1/8
 lgt_scale = floor(gtscale/8)*0.2;
 
 % valid = iminfo.negBP;
 
 % if valid
+%% mask初始化为全1
 mask = ones(dim1+pad*2,dim2+pad*2,size(label_joints,1));   % init as 1
 % else
 %      mask = zeros(dim1+pad*2,dim2+pad*2,size(label_joints,1));   % init as 0
 % end
 
 %------------- find regions close to gt(set them as -1, not use) ---------
+%% 设置每个关键点的mask值，这里尺度范围为40% heatmap
 lgt_scale = floor(gtscale/8*0.4);
 for i = 1:size(label_joints,1)
     mask(:,:,i) = map_cirle_fill(mask(:,:,i),label_joints(i,:),lgt_scale,dist_map);
 end
 
 % icon_mask = zeros(dim1+pad*2,dim2+pad*2);
+%% 对所有关键点取最小值的map，之前一步处理的结果中值有如下几种：0, 1, -1
 icon_mask = min(mask,[],3);
 icon_mask_sig = icon_mask;
+%% 得到多个keypoints 0.4宽度为半径圆的重复覆盖的区域
 icon_mask(icon_mask_sig<0) = 1;
 icon_mask(icon_mask_sig>=0) = 0;
 if size(icon_mask,1) ~= size(mask,1)
@@ -47,6 +57,7 @@ if size(icon_mask,1) ~= size(mask,1)
 end
 
 %------------- find regions around, set as 2 ---------
+%% 在keypoint边缘的mask为 2，靠近keypoint为 1，keypoint覆盖区域为 0, 其他区域为 1
 scale_limt = ceil(gtscale/8*0.5);
 for i = 1:size(label_joints,1)
     rawmask = map_cirle_fill_around(mask(:,:,i),label_joints(i,:),lgt_scale,scale_limt,dist_map,1);
@@ -56,6 +67,7 @@ end
 
 
 for i = 1:size(label_joints,1)
+    %% 设置关键点坐标为 1
     map(label_joints(i,2),label_joints(i,1),i) = 1;
     mask(label_joints(i,2),label_joints(i,1),:) = 3;  % if this pixel is used, use it for all class
     %     if lgt_scale>1
@@ -70,11 +82,11 @@ for i = 1:size(label_joints,1)
     %         mask(label_joints(i,2),label_joints(i,1)+1,:) = 3;   %right
     %     end
 end
-
+%% 设置关键点为所有mask的最大值
 mask = max(mask,[],3);
 
 %------------------- (a). BP pixels around  --------------------
-
+%% 剔除之前padding的影响
 map = map(pad+1:end-pad,pad+1:end-pad,:);
 mask = mask(pad+1:end-pad,pad+1:end-pad,:);
 
@@ -82,6 +94,3 @@ map =cat(3,map,mask);
 if size(map,1)~=labelsize(1) || size(map,2)~=labelsize(2) || size(map,3) ~= size(label_joints,1)+1
     keyboard;
 end
-
-
-

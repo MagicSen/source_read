@@ -5,9 +5,11 @@ im = imreadx(iminfo);
 %-------  resize the lenger size to 336   ------------
 %% 需要图像统一resize到336*336
 [y,x,~] = size(im);
-%% inputsize(1) == 336
+%% 这里计算resize的尺寸, inputsize(1) == 336
 ratio = inputsize(1)/max([x,y]);
 
+%% 如果是负样本直接resize，不用care形变
+%% 如果是正样本需要先resize到某一个尺寸，然后外扩剪裁到336X336, joints需要update坐标
 if ~isempty(iminfo.joints)
     %---------- positive -----------------
     im = imresize(im,ratio);
@@ -21,7 +23,7 @@ if ~isempty(iminfo.joints)
     %% inputsize(1) == 336
     box = floor([cent-inputsize(1)/2+1 cent+inputsize(1)/2]);
     
-    %% 填充矩阵
+    %% 全0填充矩阵
     padded = padarray(im, [padx, pady, 0], 0);
     
     crop = subarray(padded, box(2), box(4), box(1), box(3), 0);

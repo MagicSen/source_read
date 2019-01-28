@@ -9,7 +9,9 @@ try
     load([cachedir cls '.mat'],'idx','def');
 catch
     data = [pos_train; pos_val];
+    %% 将同一个keypoints index的数据合并到一个矩阵，并且进行缩放
     def = data_def_lsp(data);
+    %% 按每两个关节点距离聚类，后面会用到约束
     idx = clusterparts_yy(def,mix,pa);
     save([cachedir cls '.mat'],'idx','def');
 end
@@ -18,6 +20,7 @@ try
     load([cachedir cls '_SampleBase.mat'],'pos_train','pos_val')
 catch
     %----    sample based -------
+    %% 把前一阶段聚类结果保存到pos_train中
     all_idx = [];
     for p = 1:length(idx)
         p_idx = idx{p};

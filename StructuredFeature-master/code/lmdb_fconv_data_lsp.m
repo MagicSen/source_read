@@ -1,6 +1,7 @@
 function cropped = lmdb_fconv_data_lsp(name,pos_train,patchsize,inputsize,cachedir,lmdb_dir)
 
 %----------- crop the original image to training size -----------------
+%%  剪切图像
 Cropped_dir = [cachedir 'Cropped_'];
 
 try

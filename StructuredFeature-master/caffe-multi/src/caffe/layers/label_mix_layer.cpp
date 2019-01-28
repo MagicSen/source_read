@@ -19,14 +19,14 @@ void LabelMixLayer<Dtype>::LayerSetUp(
 template <typename Dtype>
 void LabelMixLayer<Dtype>::Reshape(
   const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
-
+  // 得到样本的map数量以及channel数目(channel数目等价于joint的数目)
   num_ = bottom[0]->num();
   channel_num_ = bottom[0]->channels();
   inner_num_ = (bottom[0]->height()*bottom[0]->width());
 
   CHECK_EQ(channel_num_ , bottom[1]->channels())
       << "Number of labels channels must match number of mix; ";
- 
+  // 顶部joint交叉融合，将有13种组合
   top[0]->Reshape(num_, (channel_num_*Mix_Num_), bottom[0]->height(), bottom[0]->width());
 }
 
@@ -43,6 +43,7 @@ void LabelMixLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   {
     for(int i = 0; i< channel_num_; ++i)
     {
+      // 混合的keypoint index 为 0*13, 1*13, 2*13, 3*13 ... 26*13
       mixtype[n*channel_num_+i] = mixtype[n*channel_num_+i]+13*i;
     }
   }
