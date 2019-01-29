@@ -90,6 +90,7 @@ mask = max(mask,[],3);
 map = map(pad+1:end-pad,pad+1:end-pad,:);
 mask = mask(pad+1:end-pad,pad+1:end-pad,:);
 
+%% 最后一个map为mask
 map =cat(3,map,mask);
 if size(map,1)~=labelsize(1) || size(map,2)~=labelsize(2) || size(map,3) ~= size(label_joints,1)+1
     keyboard;

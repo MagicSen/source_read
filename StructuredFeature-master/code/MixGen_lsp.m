@@ -30,6 +30,7 @@ for i = 1:length(pos)
         subidx = ones(1,length(pa));
     end
     %% 矩阵重新排列，第三维与第二维互换
+    %% 由 26X1X1 ==> 1X1X26
     subidx = permute(subidx, [1,3,2]);
     save([wtdir sprintf('%06d.mat',i)],'subidx');
 end

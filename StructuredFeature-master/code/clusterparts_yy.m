@@ -16,6 +16,7 @@ for p = 1:length(deffeat)
             i = i+1;
         end
         %% X = deffeat{2} - deffeat{1}
+        %% 计算相邻节点距离
         X = deffeat{i} - deffeat{p};
     else
         %% 非头部节点，计算相邻节点的距离
@@ -29,16 +30,19 @@ for p = 1:length(deffeat)
     sumdist = zeros(1,R);
     %% 关节点之间距离聚类
     fprintf('Clustering Class: %d \n',p);
+    %% 循环聚类
     for trial = 1:R
         if mod(trial,10)==0
             fprintf('     trial: %d \n',trial);
         end
+        %% 聚类 K(p) = K_old ==> 13
         [gInd{trial} cen{trial} sumdist(trial)] = k_means(X,K(p));
     end
     % take the smallest distance one
     %% 选择最小聚类误差的结果
     [dummy ind] = min(sumdist);
     %% 得到节点为p的聚类结果，每两个节点间类别为13
+    %% 得到聚类误差最小的一次，得到类别下标
     idx{p} = gInd{ind(1)};
 end
 

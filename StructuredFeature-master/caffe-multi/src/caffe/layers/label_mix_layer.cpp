@@ -13,6 +13,7 @@ namespace caffe {
 template <typename Dtype>
 void LabelMixLayer<Dtype>::LayerSetUp(
   const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
+  // 得到相邻节点聚类的个数
   Mix_Num_ = this->layer_param_.label_mix_param().mix_num();
 }
 
@@ -24,9 +25,10 @@ void LabelMixLayer<Dtype>::Reshape(
   channel_num_ = bottom[0]->channels();
   inner_num_ = (bottom[0]->height()*bottom[0]->width());
 
+  // mix数组必须等于joints的数目
   CHECK_EQ(channel_num_ , bottom[1]->channels())
       << "Number of labels channels must match number of mix; ";
-  // 顶部joint交叉融合，将有13种组合
+  // 顶部joint交叉融合，构成一个矩阵，其中每个channel层又分为13个子聚类channel
   top[0]->Reshape(num_, (channel_num_*Mix_Num_), bottom[0]->height(), bottom[0]->width());
 }
 
@@ -44,6 +46,7 @@ void LabelMixLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     for(int i = 0; i< channel_num_; ++i)
     {
       // 混合的keypoint index 为 0*13, 1*13, 2*13, 3*13 ... 26*13
+      // 最初的相邻关节点都是13类没有编号区分，这里增加偏移，来区分不同关节点的聚类结果
       mixtype[n*channel_num_+i] = mixtype[n*channel_num_+i]+13*i;
     }
   }
@@ -59,11 +62,14 @@ void LabelMixLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   {
     for (int i = 0; i < channel_num_; ++i) 
     {
+      // 将同一关节点，相邻结点聚类结果合并
       int this_mix = mixtype[n*channel_num_+i];
     //  LOG(INFO) << "n: " << n << " this_mix" << this_mix;
       for(int j = 0; j < inner_num_ ; ++j)
       {
+        // 图像map的下标
         bottom_idx = n*channel_num_*inner_num_ + i*inner_num_ + j;
+        // 顶层混合map的下标
         top_idx    = n*output_channel*inner_num_ + (this_mix-1)*inner_num_ + j;
         top_data[top_idx] = bottom_data[bottom_idx];
       }

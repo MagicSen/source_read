@@ -10,6 +10,7 @@ conf.test_with_detection = false; % single response on one image
 %% lsp数据集组合，这里人体可能存在keypoint插值的结果
 % for full body
 % 26 part
+%% 得到结点间的关系
 conf.pa = [0 1 2 3 4 5 6 3 8 9 10 11 12 13 2 15 16 17 18 15 20 21 22 23 24 25];
 d_step = 9;
 conf.degree = [-180+d_step:d_step:-d_step,d_step:d_step:180];

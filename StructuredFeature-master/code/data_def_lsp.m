@@ -11,10 +11,11 @@ for n = 1:length(pos)
 end
 
 %% 根据 points 的 joints 数目分配 cell数组
+%% deffeat == 26
 deffeat = cell(1,size(points,1));
 for p = 1:size(points,1)
   %% 得到 keypoints index为 p 的所有坐标，并且从 1 X 2 X n 转换为 2 X n
   def = squeeze(points(p,1:2,:));
-  %% 坐标值scale缩小为原来1/8，并且转置
+  %% 坐标值scale缩小为原来1/8，并且转置，第一列变为x, 第二列变为y, 行数为样本总数
   deffeat{p} = (def/8)';
 end

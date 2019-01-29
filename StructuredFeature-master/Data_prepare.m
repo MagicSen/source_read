@@ -14,7 +14,7 @@ pa = conf.pa;
 [pos_train, pos_val,neg_train, ~] = LSP_data_fconv(cachedir);
 
 % -------------------- clustering -----------------------
-%% 预处理，保存keypoints之间的聚类结果
+%% 预处理，保存keypoints之间的聚类结果，并且记录第几轮聚类成功
 [pos_train,pos_val] = LSP_def_idx('lsp',pos_train,pos_val,13,pa,cachedir);
 
 % ------------------ generate data and label ------------------------
