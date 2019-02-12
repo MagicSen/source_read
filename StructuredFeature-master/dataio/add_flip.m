@@ -2,6 +2,7 @@ function imdata = add_flip(imdata, mirror)
 % ---------- flip version --------
 
 
+%% 获得图像总数
 num = numel(imdata);
 new_imdata = cell(num, 1);
 

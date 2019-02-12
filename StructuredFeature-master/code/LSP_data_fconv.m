@@ -114,6 +114,7 @@ catch
         neg(ii).isflip = 0;
     end
     % -------- flip negatives ----------
+    %% 选择验证集所需数据，数据量为 1832 - 615 = 1217， 验证集 500， 训练集合 717
     val_id = randperm(numel(neg), 500);
     train_id = true(numel(neg), 1); train_id(val_id) = false;
     neg_train = neg(train_id); neg_val = neg(val_id);

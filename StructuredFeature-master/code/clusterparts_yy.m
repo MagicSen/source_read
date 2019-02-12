@@ -45,9 +45,3 @@ for p = 1:length(deffeat)
     %% 得到聚类误差最小的一次，得到类别下标
     idx{p} = gInd{ind(1)};
 end
-
-
-
-
-
-

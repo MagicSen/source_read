@@ -57,12 +57,12 @@ void LabelMixLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   int output_num = top[0]->count();
   for(int i=0; i<output_num; ++i){top_data[i]=0;}
 
+  // 1对13倍
   int bottom_idx = 0, top_idx = 0;
   for (int n = 0; n < num_; ++n) 
   {
     for (int i = 0; i < channel_num_; ++i) 
     {
-      // 将同一关节点，相邻结点聚类结果合并
       int this_mix = mixtype[n*channel_num_+i];
     //  LOG(INFO) << "n: " << n << " this_mix" << this_mix;
       for(int j = 0; j < inner_num_ ; ++j)
@@ -70,6 +70,7 @@ void LabelMixLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         // 图像map的下标
         bottom_idx = n*channel_num_*inner_num_ + i*inner_num_ + j;
         // 顶层混合map的下标
+        // 将同一关节点，相邻结点聚类结果，这里类别是1~13，为了取下标要减1
         top_idx    = n*output_channel*inner_num_ + (this_mix-1)*inner_num_ + j;
         top_data[top_idx] = bottom_data[bottom_idx];
       }

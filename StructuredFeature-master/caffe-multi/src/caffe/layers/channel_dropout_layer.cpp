@@ -25,6 +25,7 @@ template <typename Dtype>
 void ChannelDropoutLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   NeuronLayer<Dtype>::Reshape(bottom, top);
+  // 随机选择channel，为dropout做准备
   // Set up the cache for random number generation
   rand_vec_.Reshape(bottom[0]->num(),bottom[0]->channels(),1,1);
 }
@@ -34,6 +35,7 @@ void ChannelDropoutLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
+  // 填充mask,mask记录选择哪一个channel
   unsigned int* mask = rand_vec_.mutable_cpu_data();
 
   const int num = bottom[0]->num();
@@ -46,6 +48,7 @@ void ChannelDropoutLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // Create random numbers
     int idx=0;
     int mask_val=0;
+    // 伯努利分布(0,1)分布，随机选择概率为1 - threshold的设置为 1
     caffe_rng_bernoulli(channels*num, 1. - threshold_, mask);
     for(int i = 0; i< num; ++i)
     {
@@ -66,6 +69,7 @@ void ChannelDropoutLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     //}
   } 
   else { // do not use dropout at test stage
+    // 如果是测试，全部拷贝
     caffe_copy(bottom[0]->count(), bottom_data, top_data);
   }
 }
@@ -92,6 +96,7 @@ void ChannelDropoutLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
           for(int k = 0; k<inner_num_; ++k)
           {
             idx = i*channels*inner_num_+j*inner_num_+k;
+            // 按照正向传播选择的channel，反向传播梯度权重
             mask_val = mask[i*channels+j];
             bottom_diff[idx] = top_diff[idx] * mask_val * scale_;
        //     LOG(INFO) <<"Backward: locate: " << i << " " << j << " " << k << " "
