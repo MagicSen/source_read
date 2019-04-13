@@ -6,6 +6,7 @@
 namespace caffe {
 
 
+// 如果是CUDA执行以下程序
 #ifdef USE_CUDA
 template<typename Dtype>
 __global__ void DropoutForward(const int_tp n, const Dtype* in,
@@ -26,6 +27,7 @@ void DropoutLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   const int_tp count = bottom[0]->count();
 
   if (this->device_->backend() == BACKEND_CUDA) {
+// 如果是CUDA执行以下程序
 #ifdef USE_CUDA
     if (this->phase_ == TRAIN) {
       uint_tp* mask =
@@ -42,13 +44,18 @@ void DropoutLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     }
 #endif  // USE_CUDA
   } else {
+// 调用OpenCL执行并行程序
 #ifdef USE_GREENTEA
+    // 整体环境变量
     viennacl::ocl::context &ctx = viennacl::ocl::get_context(
         this->device_->id());
+    // OpenCL 函数模板
     viennacl::ocl::program &program = this->device_->template program<Dtype>();
     if (this->phase_ == TRAIN) {
+      // 生成随机分布
       cl_mem mask = (cl_mem) (rand_vec_.mutable_gpu_data());
       greentea_gpu_rng_uniform(this->device_->id(), count, mask, 0);
+      // 取kernel函数，设置dropout比率
       // set thresholds
       viennacl::ocl::kernel &oclk_dropout = program.get_kernel(
           CL_KERNEL_SELECT("dropout_forward"));
