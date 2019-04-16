@@ -59,6 +59,10 @@ void DropoutLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       // set thresholds
       viennacl::ocl::kernel &oclk_dropout = program.get_kernel(
           CL_KERNEL_SELECT("dropout_forward"));
+      // 入队列，依靠WrapHandle来获取ViennaCL版本的数据指针
+      // fixup_arg_type函数，用来将boost的shared_ptr变为const void*
+      // ctx.get_queue，获取当前设备队列
+      // viennacl::ocl::enqueue，入队列的操作，下一步产出结果
       viennacl::ocl::enqueue(
           oclk_dropout(count, WrapHandle((cl_mem) bottom_data, &ctx),
                        WrapHandle(mask, &ctx), fixup_arg_type(uint_thres_),

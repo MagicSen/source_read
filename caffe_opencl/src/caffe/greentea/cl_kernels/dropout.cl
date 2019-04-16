@@ -8,6 +8,7 @@ __kernel void TEMPLATE(dropout_forward,Dtype)(const int_tp n,
                                               const uint_tp threshold,
                                               const KERNEL_ARG_DTYPE scale,
                                               __global Dtype* out) {
+  // get_global_id得到for循环中遍历数据的下标
   for (int_tp index = get_global_id(0); index < n; index += get_global_size(0)) {
     out[index] = in[index] * (Dtype)((mask[index] > threshold)?1.0:0.0) * scale;
   }

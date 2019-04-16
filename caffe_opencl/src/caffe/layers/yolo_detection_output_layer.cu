@@ -27,9 +27,11 @@ void YoloDetectionOutputLayer<Dtype>::Forward_gpu(
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top) {
   Blob<Dtype> swap;
   swap.Reshape(bottom[0]->num(), bottom[0]->height()*bottom[0]->width(), num_box_, (bottom[0]->channels() + num_box_ - 1) / num_box_);
+  // 从GPU数据转换为CPU数据
   PermuteData24GPU<Dtype>(bottom[0]->count(), bottom[0]->gpu_data(),
       bottom[0]->channels(), bottom[0]->height(),bottom[0]->width(), swap.mutable_gpu_data());
   
+  // 转换为cpu数据
   Dtype* swap_data = swap.mutable_cpu_data();
   vector<vector< PredictionResult<Dtype> > > predicts(swap.num());
   PredictionResult<Dtype> predict;
@@ -68,6 +70,7 @@ void YoloDetectionOutputLayer<Dtype>::Forward_gpu(
   top_shape.push_back(7);
   top[0]->Reshape(top_shape);
 
+  // 采用cpu模式来保存top数据
   Dtype* top_data = top[0]->mutable_cpu_data();
   int_tp start_pos=0;
   for (int_tp b = 0; b < swap.num(); ++b){
