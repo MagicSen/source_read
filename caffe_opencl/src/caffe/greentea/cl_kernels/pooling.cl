@@ -56,7 +56,7 @@ __kernel void TEMPLATE(max_pool_forward_no_mask, Dtype)(
     TEMPLATE(max_pool_forward_impl, Dtype)(
       nthreads, bottom_data, num, channels, height, width,
       pooled_height, pooled_width, kernel_h,
-      kernel_w, stride_h, stride_w, pad_h, pad_w, top_data, 0, NULL, NULL, true
+      kernel_w, stride_h, stride_w, pad_h, pad_w, top_data, 0, (__global int_tp*)0, (__global Dtype*)0, true
     );
 }
 

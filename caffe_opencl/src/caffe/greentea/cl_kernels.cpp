@@ -8913,6 +8913,53 @@ static std::vector<std::vector<std::string>> cl_kernels{
 "}",    // NOLINT
 "}",    // NOLINT
 "}",    // NOLINT
+""},   // NOLINT
+    {"#ifndef __OPENCL_VERSION__
+",    // NOLINT
+"#include \"header.cl\"
+",    // NOLINT
+"#endif
+",    // NOLINT
+"
+",    // NOLINT
+"__kernel void TEMPLATE(upsample_forward,Dtype)(const int_tp n,
+",    // NOLINT
+"__global const Dtype* in,
+",    // NOLINT
+"const int C, const int H, 
+",    // NOLINT
+"const int W, const KERNEL_ARG_DTYPE scale_,
+",    // NOLINT
+"__global Dtype* out) {
+",    // NOLINT
+"const int number_size = C * H * W;
+",    // NOLINT
+"const int channel_size = H * W;
+",    // NOLINT
+"const int in_height = H / scale_;
+",    // NOLINT
+"const int in_width = W / scale_;
+",    // NOLINT
+"for (int_tp index = get_global_id(0); index < n; index += get_global_size(0)) {
+",    // NOLINT
+"int n = index / number_size;
+",    // NOLINT
+"int c = (index % number_size) / channel_size;
+",    // NOLINT
+"int h = ((index % number_size) % channel_size) / H;
+",    // NOLINT
+"int w = (((index % number_size) % channel_size) % H);
+",    // NOLINT
+"int nw = w/scale_;
+",    // NOLINT
+"int nh = h/scale_;
+",    // NOLINT
+"in_idx = (((n * C + c) * in_height) + nh) * in_width + nw;
+",    // NOLINT
+"out[index] = in[in_idx];
+",    // NOLINT
+"}
+",    // NOLINT
 ""}   // NOLINT
 };
 static std::string cl_kernel_names[] = {
@@ -8955,7 +9002,8 @@ static std::string cl_kernel_names[] = {
     "slice",   // NOLINT
     "softmax_loss",   // NOLINT
     "solvers",   // NOLINT
-    "tile"   // NOLINT
+    "tile",   // NOLINT
+    "upsample"   // NOLINT
 };
 viennacl::ocl::program & RegisterCommonKernels(viennacl::ocl::context *ctx, std::string options) {
   std::stringstream ss;
