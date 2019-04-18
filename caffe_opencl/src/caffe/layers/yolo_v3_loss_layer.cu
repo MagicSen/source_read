@@ -9,20 +9,34 @@ template <typename Dtype>
 void YoloV3LossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
+  // 将上一层的结果赋值给temp_top
   // copy the bottom[0] result to temp_top
   caffe_cpu_copy<Dtype>(bottom[0]->count(), bottom[0]->cpu_data(), temp_top.mutable_cpu_data());
   Dtype *p_top_data = temp_top.mutable_cpu_data();
+
+  // 根据下面公式，修正temp_top的值
+  // temp_top的大小为 number_sample * N * M * anchor_size * (4 + 1 + class_number)
+
   // set the temp_top data
+  // 遍历每个样本的预测结果，测试阶段为 1
   for(int b = 0; b < temp_top.shape(0); ++b){
+
+    // 根据anchor_size遍历预测结果
 	for(int n = 0; n < anchor_index.size(); ++n){
-		int l_output = temp_top.shape(2) * temp_top.shape(3) * (4 + 1 + class_number) * anchor_index.size(); 
+
+		// 计算每一个样本预测框的步长，N * M * anchor_size * (4 + 1 + class_number)
+		int l_output = temp_top.shape(2) * temp_top.shape(3) * (4 + 1 + class_number) * anchor_index.size();
+
+		// 得到第n个anchor的预测起始点，之后依次是 N * M * 4 的 x, y, w, h
 		int index = b * l_output + n * temp_top.shape(2) * temp_top.shape(3) * (4 + 1 + class_number);
-                //printf("b: %d | n: %d | outputs: %d | index: %d ", b, n, l_output, index);
+
+		// 为 x, y 增加delta变量，x_new = delta(x) = 1 / (1 + exp(-x))
 		for(int i = 0; i < 2 * temp_top.shape(2) * temp_top.shape(3); ++i){
 			p_top_data[index + i] = 1.0 / (1.0 + exp(-p_top_data[index + i]));	
 		}
+		
+		// 得到第n个anchor的类别预测起始点，之后依次是 N * M * (1 + class_number) 的 confidence, class_1_prob, class_2_prob ...
 		index = b * l_output + n * temp_top.shape(2) * temp_top.shape(3) * (4 + 1 + class_number) + 4 * temp_top.shape(2) * temp_top.shape(3);
-                //printf(" %d, ", index);
 		for(int i = 0; i < (1 + class_number) * temp_top.shape(2) * temp_top.shape(3); ++i){
 			p_top_data[index + i] = 1.0 / (1.0 + exp(-p_top_data[index + i]));	
 		}

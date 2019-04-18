@@ -18,7 +18,7 @@ __kernel void TEMPLATE(upsample_forward,Dtype)(const int_tp n,
 		int w = index % W;
 	  	int nw = w/scale_;
 	  	int nh = h/scale_;
-		in_idx = (((n * C + c) * in_height) + nh) * in_width + nw;
+		int in_idx = (((n * C + c) * in_height) + nh) * in_width + nw;
 		out[index] = in[in_idx];
   	}
 }
