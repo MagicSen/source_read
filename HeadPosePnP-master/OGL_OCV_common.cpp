@@ -14,7 +14,7 @@ void drawOpenCVImageInGL(const OpenCVGLTexture& tex) {
 	glDisable(GL_BLEND);
 
 	int vPort[4]; glGetIntegerv(GL_VIEWPORT, vPort);
-
+	// ªÊ÷∆ÕºœÒŒ∆¿Ì
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 	glPushMatrix();
@@ -112,7 +112,6 @@ void copyImgToTex(const Mat& _tex_img, GLuint* texID, double* _twr, double* _thr
 	glBindTexture( GL_TEXTURE_2D, *texID );
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, tex_pow2.cols, tex_pow2.rows, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, tex_pow2.data);
 }	
-
 
 OpenCVGLTexture MakeOpenCVGLTexture(const Mat& _tex_img) {
 	OpenCVGLTexture _ocvgl;

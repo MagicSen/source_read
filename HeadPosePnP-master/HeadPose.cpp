@@ -159,7 +159,7 @@ void myGLinit() {
 }
 
 void drawAxes() {
-	
+	// 绘制坐标系
 	//Z = red
 	glPushMatrix();
 	glRotated(180,0,1,0);
@@ -202,23 +202,25 @@ void drawAxes() {
 
 void display(void)
 {	
+	// 设置显示视角
 	// draw the image in the back
 	int vPort[4]; glGetIntegerv(GL_VIEWPORT, vPort);
+	// 绘制背景图像
 	glEnable2D();
 	drawOpenCVImageInGL(imgTex);
 	glTranslated(vPort[2]/2.0, 0, 0);
 	drawOpenCVImageInGL(imgWithDrawing);
 	glDisable2D();
-
+	// 清空深度缓冲区
 	glClear(GL_DEPTH_BUFFER_BIT); // we want to draw stuff over the image
-	
+	// 绘制左半边
 	// draw only on left part
 	glViewport(0, 0, vPort[2]/2, vPort[3]);
-	
+	// 变换矩阵压栈
 	glPushMatrix();
-	
+	// 设置观看的视角
 	gluLookAt(0,0,0,0,0,1,0,-1,0);
-
+	// 设置三维物体的旋转以及平移坐标
 	// put the object in the right position in space
 	Vec3d tvv(tv[0],tv[1],tv[2]);
 	glTranslated(tvv[0], tvv[1], tvv[2]);
@@ -229,33 +231,35 @@ void display(void)
 						rot[6],rot[7],rot[8],0,
 						0,	   0,	  0		,1};
 	glMultMatrixd(_d);
-	
+	// 设置颜色，绘制三维物体
 	// draw the 3D head model
 	glColor4f(1, 1, 1,0.75);
 	glmDraw(head_obj, GLM_SMOOTH);
 
+	// 绘制坐标系
 	//----------Axes
 	glScaled(50, 50, 50);
 	drawAxes();
 	//----------End axes
-
+	// 变换矩阵出栈
 	glPopMatrix();
 	
 	// restore to looking at complete viewport
 	glViewport(0, 0, vPort[2], vPort[3]); 
-
+	// 更新帧缓冲区域
 	glutSwapBuffers();
 }
 
 void init_opengl(int argc,char** argv) {
+	// 窗口初始化
 	glutInitWindowSize(500,250);
     glutInitWindowPosition(40,40);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); // | GLUT_MULTISAMPLE
     glutCreateWindow("head pose");
-	
+	// 初始化渲染背景/
 	myGLinit();
-	
+	// 窗口回调函数初始化
     glutReshapeFunc(resize);
     glutDisplayFunc(display);
     glutKeyboardFunc(key);
@@ -265,6 +269,7 @@ void init_opengl(int argc,char** argv) {
 
 int start_opengl() {
 
+	// 调用glut工具，启动无限循环
     glutMainLoop();
 
 	return 1;
@@ -298,18 +303,18 @@ void loadNext() {
 	Mat ip(imagePoints);
 	
 	sprintf(buf,"%sAngelina_Jolie/Angelina_Jolie_%04d.jpg",workingDir,counter);
-
+	// 读取图像
 	Mat img = imread(buf);
-
+	// 设置背景纹理
 	imgTex.set(img); //TODO: what if different size??
-
+	// 绘制关键点信息
 	// paint 2D feature points
 	for(unsigned int i=0;i<imagePoints.size();i++) circle(img,imagePoints[i],2,Scalar(255,0,255),CV_FILLED);
-
+	// 根据关键点信息计算头部姿态，将OpenCV下的变换坐标转为OpenGL下的变换坐标
 	loadWithPoints(ip,img);
-	
+	// 设置输出纹理
 	imgWithDrawing.set(img);
-	
+	// 计数器+1
 	counter = (counter+1);
 }
 
@@ -346,7 +351,7 @@ void loadWithPoints(Mat& ip, Mat& img) {
 		Mat_<double> opt_p = KP * X;
 		Point2f opt_p_img(opt_p(0)/opt_p(2),opt_p(1)/opt_p(2));
 //		cout << "object point reproj " << opt_p_img << endl; 
-		
+		// 绘制反投影点的坐标
 		circle(img, opt_p_img, 4, Scalar(0,0,255), 1);
 	}
 	rotM = rotM.t();// transpose to conform with majorness of opengl matrix
@@ -356,6 +361,7 @@ void loadWithPoints(Mat& ip, Mat& img) {
 int main(int argc, char** argv)
 {
 
+	// 得到模型关键点坐标
 	vector<Point3f > modelPoints;
 //	modelPoints.push_back(Point3f(-36.9522f,39.3518f,47.1217f));	//l eye
 //	modelPoints.push_back(Point3f(35.446f,38.4345f,47.6468f));		//r eye
@@ -373,6 +379,7 @@ int main(int argc, char** argv)
 	modelPoints.push_back(Point3f(-61.8886,127.797,-89.4523));	// l ear (v 2011)
 	modelPoints.push_back(Point3f(127.603,126.9,-83.9129));		// r ear (v 1138)
 	
+	// 载入模型数据
 	head_obj = glmReadOBJ("head-obj.obj");
 
 	op = Mat(modelPoints);
@@ -385,6 +392,7 @@ int main(int argc, char** argv)
 	
 	cout << "model points " << op << endl;
 	
+	// 初始化相机参数
 	rvec = Mat(rv);
 	double _d[9] = {1,0,0,
 					0,-1,0,
@@ -395,14 +403,17 @@ int main(int argc, char** argv)
 	
 	camMatrix = Mat(3,3,CV_64FC1);
 
+	// 初始化opengl环境
 	init_opengl(argc, argv); // get GL context, for loading textures
 
+	// 初始化OpenCV与OpenGL桥接的图像工具
 	// prepare OpenCV-OpenGL images
 	imgTex = MakeOpenCVGLTexture(Mat());
 	imgWithDrawing = MakeOpenCVGLTexture(Mat());
 
+	// 载入图像以及关键点信息
 	loadNext();
-
+	// 启动OpenGL
 	start_opengl();
 
 	return 0;
