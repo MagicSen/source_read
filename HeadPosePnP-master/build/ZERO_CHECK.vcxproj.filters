@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\project\source_read\HeadPosePnP-master\build\CMakeFiles\1fcc34c26c51ab8f66a0e4e35ec7bd81\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C9472491-B451-3491-B35C-54F0E90BD311}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
