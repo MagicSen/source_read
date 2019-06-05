@@ -76,7 +76,12 @@ void resize(int width, int height)
     glLoadIdentity();
     //glFrustum(-ar, ar, -1.0, 1.0, 2.0, 100.0);
 	gluPerspective(47,1.0,0.01,1000.0);
-
+	std::cout << "ABCD" << std::endl;
+	float projection_matrix[16]; glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix);
+	for (int i = 0; i < 16; ++i){
+		std::cout << projection_matrix[i] << " ";
+	}
+	std::cout << std::endl;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }

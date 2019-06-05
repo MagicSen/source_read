@@ -55,6 +55,20 @@ glmAbs(GLfloat f)
     return f;
 }
 
+void glmTranslatePoint(GLMmodel* model, double *tr_matr){
+	for (int i = 0; i <= model->numvertices; ++i){
+		float x = model->vertices[i * 3 + 0];
+		float y = model->vertices[i * 3 + 1];
+		float z = model->vertices[i * 3 + 2];
+		double base = tr_matr[12] * x + tr_matr[13] * y + tr_matr[14] * z + tr_matr[15];
+		float new_x = (tr_matr[0] * x + tr_matr[1] * y + tr_matr[2] * z + tr_matr[3]) / base;
+		float new_y = (tr_matr[4] * x + tr_matr[5] * y + tr_matr[6] * z + tr_matr[7]) / base;
+		float new_z = (tr_matr[8] * x + tr_matr[9] * y + tr_matr[10] * z + tr_matr[11]) / base;
+		model->vertices[i * 3 + 0] = new_x;
+		model->vertices[i * 3 + 1] = new_y;
+		model->vertices[i * 3 + 2] = new_z;
+	}
+}
 /* glmDot: compute the dot product of two vectors
  *
  * u - array of 3 GLfloats (GLfloat u[3])

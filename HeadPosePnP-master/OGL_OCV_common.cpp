@@ -24,7 +24,8 @@ void drawOpenCVImageInGL(const OpenCVGLTexture& tex) {
 	
 	double aw2h = tex.aspect_w2h, ithr = tex.thr, itwr = tex.twr;
 	double n[3] = {0,0,-1};
-	
+	//std::cout << tex.tex_id << " " << tex.aspect_w2h << " " << tex.thr << " " << tex.twr << std::endl;
+
 	GLint face_ori; glGetIntegerv(GL_FRONT_FACE, &face_ori);
 	glFrontFace(GL_CW); //we're gonna draw clockwise
 	
@@ -51,6 +52,55 @@ void drawOpenCVImageInGL(const OpenCVGLTexture& tex) {
 	
 	glFrontFace(face_ori); //restore front face orientation
 	
+	glDisable(GL_TEXTURE_2D);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_BLEND);
+}
+
+
+void drawOpenCVImageInGLWithIndex(const OpenCVGLTexture& tex, float x1, float y1, float x2, float y2) {
+	glDisable(GL_LIGHTING);
+	glDisable(GL_BLEND);
+
+	int vPort[4]; glGetIntegerv(GL_VIEWPORT, vPort);
+	// »æÖÆÍ¼ÏñÎÆÀí
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+	glPushMatrix();
+	glColor3ub(255, 255, 255);
+
+	glScaled(vPort[3], vPort[3], 1);
+
+	double aw2h = tex.aspect_w2h, ithr = tex.thr, itwr = tex.twr;
+	double n[3] = { 0, 0, -1 };
+	//std::cout << tex.tex_id << " " << tex.aspect_w2h << " " << tex.thr << " " << tex.twr << std::endl;
+
+	GLint face_ori; glGetIntegerv(GL_FRONT_FACE, &face_ori);
+	glFrontFace(GL_CW); //we're gonna draw clockwise
+
+	glBegin(GL_QUADS);
+
+	glTexCoord2d(0, 0);
+	glNormal3dv(n);
+	glVertex2d(x1, y1);
+
+	glTexCoord2d(0, ithr);
+	glNormal3dv(n);
+	glVertex2d(x1, y2);
+
+	glTexCoord2d(itwr, ithr);
+	glNormal3dv(n);
+	glVertex2d(x2, y2);
+
+	glTexCoord2d(itwr, 0);
+	glNormal3dv(n);
+	glVertex2d(x2, y1);
+
+	glEnd();
+	glPopMatrix();
+
+	glFrontFace(face_ori); //restore front face orientation
+
 	glDisable(GL_TEXTURE_2D);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_BLEND);
@@ -95,7 +145,7 @@ void copyImgToTex(const Mat& _tex_img, GLuint* texID, double* _twr, double* _thr
 	Mat tex_img = _tex_img;
 	flip(_tex_img,tex_img,0);
 	Mat tex_pow2(pow(2.0,ceil(log2(tex_img.rows))),pow(2.0,ceil(log2(tex_img.cols))),CV_8UC3);
-	std::cout << tex_pow2.rows <<"x"<<tex_pow2.cols<<std::endl;
+	//std::cout << tex_pow2.rows <<"x"<<tex_pow2.cols<<std::endl;
 	Mat region = tex_pow2(Rect(0,0,tex_img.cols,tex_img.rows));
 	if (tex_img.type() == region.type()) {
 		tex_img.copyTo(region);
@@ -115,9 +165,10 @@ void copyImgToTex(const Mat& _tex_img, GLuint* texID, double* _twr, double* _thr
 
 OpenCVGLTexture MakeOpenCVGLTexture(const Mat& _tex_img) {
 	OpenCVGLTexture _ocvgl;
-
+	//std::cout << _ocvgl.tex_id << std::endl;
 	glGenTextures( 1, &_ocvgl.tex_id );
-	glBindTexture( GL_TEXTURE_2D, _ocvgl.tex_id );
+	//std::cout << _ocvgl.tex_id << std::endl;
+	glBindTexture(GL_TEXTURE_2D, _ocvgl.tex_id);
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

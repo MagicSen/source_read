@@ -6,7 +6,7 @@
  *  Copyright 2011 MIT. All rights reserved.
  *
  */
-
+#pragma once
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
@@ -43,3 +43,4 @@ void glEnable2D();	// setup 2D drawing
 void glDisable2D(); // end 2D drawing
 OpenCVGLTexture MakeOpenCVGLTexture(const Mat& _tex_img); // create an OpenCV-OpenGL image
 void drawOpenCVImageInGL(const OpenCVGLTexture& tex); // draw an OpenCV-OpenGL image
+void drawOpenCVImageInGLWithIndex(const OpenCVGLTexture& tex, float x1, float y1, float x2, float y2);

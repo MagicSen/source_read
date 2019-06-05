@@ -13,7 +13,7 @@
 	  Tudor Carean - April 2008 - added texture support
 
  */
-
+#pragma once
 
 #include <GL/glut.h>
 
@@ -116,6 +116,8 @@ struct mycallback
 	int end;
 	char *text;
 };
+
+void glmTranslatePoint(GLMmodel* model, double *tr_matr);
 
 GLvoid glmDraw(GLMmodel* model, GLuint mode,char *drawonly);
 

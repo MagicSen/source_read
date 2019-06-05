@@ -50,6 +50,7 @@ Mat camMatrix;
 OpenCVGLTexture imgWithDrawing;
 
 GLMmodel* head_obj;
+GLMmodel* hat_obj;
 
 
 void myGLinit() {
@@ -70,23 +71,23 @@ void myGLinit() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// 设置0号光源，启动法线，设置材质属性
+	//// 设置0号光源，启动法线，设置材质属性
 	glEnable(GL_LIGHT0);
-	glEnable(GL_NORMALIZE);
-	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	//glEnable(GL_NORMALIZE);
+	//glEnable(GL_COLOR_MATERIAL);
+	//glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
-	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	//glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+	//glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	//glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+	//glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
-	glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
+	//glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
+	//glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+	//glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	//glMaterialfv(GL_FRONT, GL_SHININESS, high_shininess);
 
-	// 启动光源
+	//// 启动光源
 	glEnable(GL_LIGHTING);
 	// 更新MODELVIEW(世界坐标系下用来变化模型尺寸/平移/旋转)，同理可以使用GL_PROJECTION(定义投影方式：正交投影、视锥体)
 	glMatrixMode(GL_MODELVIEW);
@@ -200,7 +201,7 @@ void loadWithPoints(Mat& ip, Mat& img) {
 
 	Matx34d P(_pm);
 	Mat KP = camMatrix * Mat(P);
-	//	cout << "KP " << endl << KP << endl;
+	cout << "KP " << endl << KP << endl;
 
 	//reproject object points - check validity of found projection matrix
 	for (int i = 0; i<op.rows; i++) {
@@ -401,51 +402,78 @@ void mGLRender(HDC m_hDC)
 	glEnable2D();
 	drawOpenCVImageInGL(imgWithDrawing);
 	glDisable2D();
-
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	double project_old[16] = { 2.29984, 0, 0, 0, 0, 2.29994, 0, 0, 0, 0, -1.00002, -1, 0, 0, -0.0200002, 0 };
 	glMultMatrixd(project_old);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	// 绘制坐标轴
-	glMatrixMode(GL_MODELVIEW);
+	{
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
+		// 设置观看的视角
+		gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);
+		Vec3d tvv(tv[0], tv[1], tv[2]);
+		glTranslated(tvv[0], tvv[1], tvv[2]);
 
-	glPushMatrix();
-	// 设置观看的视角
-	gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);
-	Vec3d tvv(tv[0], tv[1], tv[2]);
-	glTranslated(tvv[0], tvv[1], tvv[2]);
+		// rotate it
+		double _d[16] = { rot[0], rot[1], rot[2], 0,
+			rot[3], rot[4], rot[5], 0,
+			rot[6], rot[7], rot[8], 0,
+			0, 0, 0, 1 };
+		glMultMatrixd(_d);
 
-	// rotate it
-	double _d[16] = { rot[0], rot[1], rot[2], 0,
-		rot[3], rot[4], rot[5], 0,
-		rot[6], rot[7], rot[8], 0,
-		0, 0, 0, 1 };
-	glMultMatrixd(_d);
-
-	glmDraw(head_obj, GLM_SMOOTH);
-
-
-	glScaled(50, 50, 50);
-
-	int draw_vPort[4]; glGetIntegerv(GL_VIEWPORT, draw_vPort);
-	for (int i = 0; i < 4; ++i){
-		std::cout << draw_vPort[i] << " ";
+		glmDraw(head_obj, GLM_SMOOTH);
+		glPopMatrix();
 	}
-	std::cout << std::endl;
 
-	float modelview_matrix[16]; glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix);
-	for (int i = 0; i < 16; ++i){
-		std::cout << modelview_matrix[i] << " ";
+	{
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		// 设置观看的视角
+		glLoadIdentity();
+		//double modelview_hat[16] = { 3.36717, 0, 0, 140.006, 0, 3.36717, 0, -97.8008, 0, 0, 3.36717, -68.3004, 0, 0, 0, 1 };
+		//glMultMatrixd(modelview_hat);
+		//double modelview_hat[16] = { 3.36717, 0, 0, 140.006, 0, 3.36717, 0, -97.8008, 0, 0, 3.36717, -68.3004, 0, 0, 0, 1 };
+		//glMultMatrixd(modelview_hat);
+
+		gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);
+		Vec3d tvv(tv[0], tv[1], tv[2]);
+		glTranslated(tvv[0], tvv[1], tvv[2]);
+
+		// rotate it
+		double _d[16] = { rot[0], rot[1], rot[2], 0,
+			rot[3], rot[4], rot[5], 0,
+			rot[6], rot[7], rot[8], 0,
+			0, 0, 0, 1 };
+		glMultMatrixd(_d);
+
+		glmDraw(hat_obj, GLM_SMOOTH);
+		glPopMatrix();
 	}
-	std::cout << std::endl;
-	float projection_matrix[16]; glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix);
-	for (int i = 0; i < 16; ++i){
-		std::cout << projection_matrix[i] << " ";
-	}
-	std::cout << std::endl;
-	drawAxes();
-	glPopMatrix();
+
+
+	//glScaled(50, 50, 50);
+
+	//int draw_vPort[4]; glGetIntegerv(GL_VIEWPORT, draw_vPort);
+	//for (int i = 0; i < 4; ++i){
+	//	std::cout << draw_vPort[i] << " ";
+	//}
+	//std::cout << std::endl;
+
+	//float modelview_matrix[16]; glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix);
+	//for (int i = 0; i < 16; ++i){
+	//	std::cout << modelview_matrix[i] << " ";
+	//}
+	//std::cout << std::endl;
+	//float projection_matrix[16]; glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix);
+	//for (int i = 0; i < 16; ++i){
+	//	std::cout << projection_matrix[i] << " ";
+	//}
+	//std::cout << std::endl;
+	//drawAxes();
+	//glPopMatrix();
+
 
 	SwapBuffers(m_hDC);
 }
@@ -466,7 +494,7 @@ int main(int argc, char** argv)
 
 	// 载入模型数据
 	head_obj = glmReadOBJ("head-obj.obj");
-
+	hat_obj = glmReadOBJ("new_hat.obj");
 	op = Mat(modelPoints);
 	Scalar m = mean(Mat(modelPoints));
 
@@ -524,7 +552,6 @@ int main(int argc, char** argv)
 	else{
 		offline_render.showErrorNumber();
 	}
-
 	return 0;
 }
 
