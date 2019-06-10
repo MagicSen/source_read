@@ -26,6 +26,8 @@ bool RenderManager::init(){
 	// 设置着色模式，使用平滑的着色模式
 	glShadeModel(GL_SMOOTH);
 
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER, 0.9);
 	// 启动深度缓冲区功能, 深度值发生变化进行比较后，符合条件的会绘制，此处小于等于参考值则通过
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -35,6 +37,7 @@ bool RenderManager::init(){
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_LIGHT0);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	//// 启动光源
 	glEnable(GL_LIGHTING);
 	glMatrixMode(GL_PROJECTION);

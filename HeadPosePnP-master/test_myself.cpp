@@ -66,6 +66,9 @@ int main(int argc, char** argv)
 	GLMmodel* head_obj = glmReadOBJ("head-obj.obj");
 	GLMmodel* hat_obj = glmReadOBJ("new_hat.obj");
 	cv::Mat icon_img = cv::imread("test.png");
+	
+	cv::Mat icon_img_2 = cv::imread("aa.png", CV_LOAD_IMAGE_UNCHANGED);
+	std::cout << icon_img_2.channels() << std::endl;
 	int width = 250, height = 250;
 
 	RenderManager render_manager(width, height);
@@ -96,6 +99,8 @@ int main(int argc, char** argv)
 
 			render_manager.render2DBackground(img);
 			render_manager.render2DTexture(icon_img, cv::Point(25, 25));
+			render_manager.render2DTexture(icon_img_2, cv::Point(10, 10));
+
 			//render_manager.render3DModel(head_obj, rvec, tvec, k);
 			render_manager.render3DModel(hat_obj, rvec, tvec, k);
 
