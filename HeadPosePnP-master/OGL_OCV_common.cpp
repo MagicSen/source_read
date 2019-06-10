@@ -122,8 +122,8 @@ void glEnable2D()
 	glLoadIdentity();
 	glTranslated(0.375, 0.375, 0);
 
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // clear the screen
-
+	//glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // clear the screen
+	glClear(GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);	
 }
 
