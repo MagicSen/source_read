@@ -66,6 +66,7 @@ void RenderManager::render2DTexture(cv::Mat img, cv::Point center){
 	float y1 = left_h / p_height;
 	float y2 = right_h / p_height;
 	//std::cout << x1 << " " << y1 << " " << x2 << " " << y2 << std::endl;
+	//std::cout << img.cols << " " << img.rows << " " << img.channels() << std::endl;
 	p_img_with_drawing.set(img);
 	glEnable2D();
 	drawOpenCVImageInGLWithIndex(p_img_with_drawing, x1, y1, x2, y2);

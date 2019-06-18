@@ -120,7 +120,7 @@ void glEnable2D()
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 	glLoadIdentity();
-	glTranslated(0.375, 0.375, 0);
+	//glTranslated(0.375, 0.375, 0);
 
 	//glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // clear the screen
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -144,15 +144,25 @@ void glDisable2D()
 void copyImgToTex(const Mat& _tex_img, GLuint* texID, double* _twr, double* _thr) {
 	Mat tex_img = _tex_img;
 	flip(_tex_img,tex_img,0);
-	Mat tex_pow2(pow(2.0,ceil(log2(tex_img.rows))),pow(2.0,ceil(log2(tex_img.cols))),CV_8UC3);
+	Mat tex_pow2;
+	if (_tex_img.channels() <= 3){
+		tex_pow2 = Mat(pow(2.0, ceil(log2(tex_img.rows))), pow(2.0, ceil(log2(tex_img.cols))), CV_8UC3);
+	}
+	else{
+		tex_pow2 = Mat(pow(2.0, ceil(log2(tex_img.rows))), pow(2.0, ceil(log2(tex_img.cols))), CV_8UC4);
+	}
 	//std::cout << tex_pow2.rows <<"x"<<tex_pow2.cols<<std::endl;
 	Mat region = tex_pow2(Rect(0,0,tex_img.cols,tex_img.rows));
 	if (tex_img.type() == region.type()) {
 		tex_img.copyTo(region);
 	} else if (tex_img.type() == CV_8UC1) {
 		cvtColor(tex_img, region, CV_GRAY2BGR);
-	} else {
+	}
+	else if (tex_img.type() == CV_8UC3){
 		tex_img.convertTo(region, CV_8UC3, 255.0);
+	}
+	else{
+		tex_img.convertTo(region, CV_8UC4, 255.0);
 	}
 	
 	if (_twr != 0 && _thr != 0) {
@@ -160,7 +170,12 @@ void copyImgToTex(const Mat& _tex_img, GLuint* texID, double* _twr, double* _thr
 		*_thr = (double)tex_img.rows/(double)tex_pow2.rows;
 	}
 	glBindTexture( GL_TEXTURE_2D, *texID );
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, tex_pow2.cols, tex_pow2.rows, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, tex_pow2.data);
+	if (_tex_img.channels() <= 3){
+		glTexImage2D(GL_TEXTURE_2D, 0, 3, tex_pow2.cols, tex_pow2.rows, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, tex_pow2.data);
+	}
+	else{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_pow2.cols, tex_pow2.rows, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, tex_pow2.data);
+	}
 }	
 
 OpenCVGLTexture MakeOpenCVGLTexture(const Mat& _tex_img) {
