@@ -1,18 +1,22 @@
+# 设置Caffe相关依赖
 # These lists are later turned into target properties on main caffe library target
 set(Caffe_LINKER_LIBS "")
 set(Caffe_INCLUDE_DIRS "")
 set(Caffe_DEFINITIONS "")
 set(Caffe_COMPILE_OPTIONS "")
 
+# 利用find_package找到Boost目录
 # ---[ Boost
 find_package(Boost 1.54 REQUIRED COMPONENTS system thread filesystem)
 list(APPEND Caffe_INCLUDE_DIRS PUBLIC ${Boost_INCLUDE_DIRS})
 list(APPEND Caffe_LINKER_LIBS PUBLIC ${Boost_LIBRARIES})
 
+# 找Threads这几个线程
 # ---[ Threads
 find_package(Threads REQUIRED)
 list(APPEND Caffe_LINKER_LIBS PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 
+# 添加OpenMP约束
 # ---[ OpenMP
 if(USE_OPENMP)
   # Ideally, this should be provided by the BLAS library IMPORTED target. However,
@@ -29,6 +33,7 @@ if(USE_OPENMP)
   list(APPEND Caffe_COMPILE_OPTIONS PRIVATE ${OpenMP_CXX_FLAGS})
 endif()
 
+# 调用Google自带的cmake搜索文件
 # ---[ Google-glog
 include("cmake/External/glog.cmake")
 list(APPEND Caffe_INCLUDE_DIRS PUBLIC ${GLOG_INCLUDE_DIRS})
@@ -42,6 +47,7 @@ list(APPEND Caffe_LINKER_LIBS PUBLIC ${GFLAGS_LIBRARIES})
 # ---[ Google-protobuf
 include(cmake/ProtoBuf.cmake)
 
+# 找HDF依赖库
 # ---[ HDF5
 find_package(HDF5 COMPONENTS HL REQUIRED)
 list(APPEND Caffe_INCLUDE_DIRS PUBLIC ${HDF5_INCLUDE_DIRS})
@@ -52,6 +58,7 @@ if(USE_HDF5)
   find_package(HDF5 COMPONENTS HL REQUIRED)
   include_directories(SYSTEM ${HDF5_INCLUDE_DIRS} ${HDF5_HL_INCLUDE_DIR})
   list(APPEND Caffe_LINKER_LIBS ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+  # 更新cmake cache的变量
   add_definitions(-DUSE_HDF5)
 endif()
 
@@ -115,6 +122,7 @@ endif()
 # ---[ BLAS
 if(NOT APPLE)
   set(BLAS "Atlas" CACHE STRING "Selected BLAS library")
+  # 可以使用三种库实现同一个功能，设定采用Atlas
   set_property(CACHE BLAS PROPERTY STRINGS "Atlas;Open;MKL")
 
   if(BLAS STREQUAL "Atlas" OR BLAS STREQUAL "atlas")
@@ -143,6 +151,8 @@ elseif(APPLE)
   endif()
 endif()
 
+# 设置Python的依赖
+# STRING根据正则表达式匹配并替换，结果放入倒数第二个变量里
 # ---[ Python
 if(BUILD_python)
   if(NOT "${python_version}" VERSION_LESS "3.0.0")
@@ -157,6 +167,7 @@ if(BUILD_python)
     find_package(Boost 1.46 COMPONENTS "python-py${boost_py_version}")
     set(Boost_PYTHON_FOUND ${Boost_PYTHON-PY${boost_py_version}_FOUND})
 
+    # 遍历找与Boost支持python一致的版本
     while(NOT "${version}" STREQUAL "" AND NOT Boost_PYTHON_FOUND)
       STRING( REGEX REPLACE "([0-9.]+).[0-9]+" "\\1" version ${version} )
 
@@ -189,6 +200,7 @@ if(BUILD_python)
   endif()
 endif()
 
+配置Matlab相关依赖
 # ---[ Matlab
 if(BUILD_matlab)
   find_package(MatlabMex)
@@ -201,10 +213,12 @@ if(BUILD_matlab)
 
   if(HAVE_MATLAB AND Octave_compiler)
     set(Matlab_build_mex_using "Matlab" CACHE STRING "Select Matlab or Octave if both detected")
+    # 设置Matlab_build_mex_using的若干候选参数
     set_property(CACHE Matlab_build_mex_using PROPERTY STRINGS "Matlab;Octave")
   endif()
 endif()
 
+# 找到Doxygen
 # ---[ Doxygen
 if(BUILD_docs)
   find_package(Doxygen)

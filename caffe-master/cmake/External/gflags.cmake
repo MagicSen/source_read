@@ -14,6 +14,7 @@ if (NOT __GFLAGS_INCLUDED) # guard against multiple includes
     # install directory
     set(gflags_INSTALL ${CMAKE_BINARY_DIR}/external/gflags-install)
 
+    # 编译产生与位置无关的代码
     # we build gflags statically, but want to link it into the caffe shared library
     # this requires position-independent code
     if (UNIX)
@@ -23,6 +24,7 @@ if (NOT __GFLAGS_INCLUDED) # guard against multiple includes
     set(GFLAGS_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${GFLAGS_EXTRA_COMPILER_FLAGS})
     set(GFLAGS_C_FLAGS ${CMAKE_C_FLAGS} ${GFLAGS_EXTRA_COMPILER_FLAGS})
 
+    # 下载及编译gflags
     ExternalProject_Add(gflags
       PREFIX ${gflags_PREFIX}
       GIT_REPOSITORY "https://github.com/gflags/gflags.git"
@@ -44,6 +46,7 @@ if (NOT __GFLAGS_INCLUDED) # guard against multiple includes
       LOG_INSTALL 1
       )
 
+    # 设置GFLAGS相关依赖库的路径
     set(GFLAGS_FOUND TRUE)
     set(GFLAGS_INCLUDE_DIRS ${gflags_INSTALL}/include)
     set(GFLAGS_LIBRARIES ${gflags_INSTALL}/lib/libgflags.a ${CMAKE_THREAD_LIBS_INIT})

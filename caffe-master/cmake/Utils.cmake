@@ -159,10 +159,14 @@ function(caffe_parse_header_single_define LIBNAME HDR_PATH VARNAME)
   endif()
 endfunction()
 
+
+# option用来让用户配置编译选项，例如是否使用CUDA
+# IF 用来连接依赖项，判断依赖项是否满足
 ########################################################################################################
 # An option that the user can select. Can accept condition to control when option is available for user.
 # Usage:
 #   caffe_option(<option_variable> "doc string" <initial value or boolean expression> [IF <condition>])
+# 函数定义，依次 函数名 变量名 描述 函数值
 function(caffe_option variable description value)
   set(__value ${value})
   set(__condition "")
