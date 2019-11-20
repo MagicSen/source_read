@@ -174,6 +174,7 @@ def get_label_map_dict(label_map_path,
     else:
       label_map_dict[item.name] = item.id
 
+  # 是否填充背景类别吗，默认不填充
   if fill_in_gaps_and_background:
     values = set(label_map_dict.values())
 
@@ -185,6 +186,7 @@ def get_label_map_dict(label_map_path,
     if not all(value >= 0 for value in values):
       raise ValueError('The values in the label map must be positive.')
 
+    # 填充value，使得label是连续的
     if len(values) != max(values) + 1:
       # there are gaps in the labels, fill in gaps.
       for value in range(1, max(values)):
