@@ -60,7 +60,7 @@ def main(unused_argv):
   flags.mark_flag_as_required('model_dir')
   flags.mark_flag_as_required('pipeline_config_path')
   config = tf.estimator.RunConfig(model_dir=FLAGS.model_dir)
-
+  # 配置网络训练字典，包括模型定义、训练方式、输出配置、评估方式
   train_and_eval_dict = model_lib.create_estimator_and_inputs(
       run_config=config,
       hparams=model_hparams.create_hparams(FLAGS.hparams_overrides),
@@ -76,6 +76,8 @@ def main(unused_argv):
   predict_input_fn = train_and_eval_dict['predict_input_fn']
   train_steps = train_and_eval_dict['train_steps']
 
+  # 训练模式 or 评估模式，如果给定checkpoint目录则认为此时脚本用来评估
+  # 评估可以采用训练集数据，也可以采用验证集数据
   if FLAGS.checkpoint_dir:
     if FLAGS.eval_training_data:
       name = 'training_data'
@@ -84,6 +86,7 @@ def main(unused_argv):
       name = 'validation_data'
       # The first eval input will be evaluated.
       input_fn = eval_input_fns[0]
+    # 设置评估运行次数, 单次/多次运行
     if FLAGS.run_once:
       estimator.evaluate(input_fn,
                          steps=None,
@@ -93,6 +96,7 @@ def main(unused_argv):
       model_lib.continuous_eval(estimator, FLAGS.checkpoint_dir, input_fn,
                                 train_steps, name)
   else:
+    # 训练模式，生成train_spec, eval_specs
     train_spec, eval_specs = model_lib.create_train_and_eval_specs(
         train_input_fn,
         eval_input_fns,

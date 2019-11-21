@@ -38,6 +38,7 @@ from object_detection.utils import shape_utils
 from object_detection.utils import variables_helper
 from object_detection.utils import visualization_utils as vis_utils
 
+# 构建模型的工具类函数映射表
 # A map of names to methods that help build the model.
 MODEL_BUILD_UTIL_MAP = {
     'get_configs_from_pipeline_file':
@@ -555,13 +556,17 @@ def create_estimator_and_inputs(run_config,
     pipeline_config_path: A path to a pipeline config file.
     config_override: A pipeline_pb2.TrainEvalPipelineConfig text proto to
       override the config from `pipeline_config_path`.
+    # 训练步数，如果不设置，使用TrainConfig中的值
     train_steps: Number of training steps. If None, the number of training steps
       is set from the `TrainConfig` proto.
+    # 评估时评估集的采样频率
     sample_1_of_n_eval_examples: Integer representing how often an eval example
       should be sampled. If 1, will sample all examples.
+    # 评估时训练集的采集频率
     sample_1_of_n_eval_on_train_examples: Similar to
       `sample_1_of_n_eval_examples`, except controls the sampling of training
       data for evaluation.
+    # 模型生成函数
     model_fn_creator: A function that creates a `model_fn` for `Estimator`.
       Follows the signature:
 
@@ -613,6 +618,7 @@ def create_estimator_and_inputs(run_config,
   create_predict_input_fn = MODEL_BUILD_UTIL_MAP['create_predict_input_fn']
   detection_model_fn_base = MODEL_BUILD_UTIL_MAP['detection_model_fn_base']
 
+  # kwargs用于将输入参数打包成字典传给函数
   configs = get_configs_from_pipeline_file(
       pipeline_config_path, config_override=config_override)
   kwargs.update({
@@ -649,14 +655,17 @@ def create_estimator_and_inputs(run_config,
   if train_steps is None and train_config.num_steps != 0:
     train_steps = train_config.num_steps
 
+  # 根据模型配置，选择模型
   detection_model_fn = functools.partial(
       detection_model_fn_base, model_config=model_config)
 
+  # 根据训练配置，选择训练的fn
   # Create the input functions for TRAIN/EVAL/PREDICT.
   train_input_fn = create_train_input_fn(
       train_config=train_config,
       train_input_config=train_input_config,
       model_config=model_config)
+  # 根据评估配置，选择评估器
   eval_input_fns = [
       create_eval_input_fn(
           eval_config=eval_config,
@@ -678,6 +687,7 @@ def create_estimator_and_inputs(run_config,
     export_to_tpu = hparams.get('export_to_tpu', False)
   tf.logging.info('create_estimator_and_inputs: use_tpu %s, export_to_tpu %s',
                   use_tpu, export_to_tpu)
+  # 根据detection模型配置，构造model_fn
   model_fn = model_fn_creator(detection_model_fn, configs, hparams, use_tpu,
                               postprocess_on_cpu)
   if use_tpu_estimator:
@@ -692,6 +702,7 @@ def create_estimator_and_inputs(run_config,
         eval_on_tpu=False,  # Eval runs on CPU, so disable eval on TPU
         params=params if params else {})
   else:
+    # 生成esitmator
     estimator = tf.estimator.Estimator(model_fn=model_fn, config=run_config)
 
   # Write the as-run pipeline config to disk.
