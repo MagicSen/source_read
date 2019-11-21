@@ -618,9 +618,9 @@ def create_estimator_and_inputs(run_config,
   create_predict_input_fn = MODEL_BUILD_UTIL_MAP['create_predict_input_fn']
   detection_model_fn_base = MODEL_BUILD_UTIL_MAP['detection_model_fn_base']
 
-  # kwargs用于将输入参数打包成字典传给函数
   configs = get_configs_from_pipeline_file(
       pipeline_config_path, config_override=config_override)
+  # kwargs用于将输入参数打包成字典传给函数，这里更新kwargs相关参数
   kwargs.update({
       'train_steps': train_steps,
       'use_bfloat16': configs['train_config'].use_bfloat16 and use_tpu
@@ -633,14 +633,18 @@ def create_estimator_and_inputs(run_config,
     kwargs.update({'eval_num_epochs': 1})
     tf.logging.warning(
         'Forced number of epochs for all eval validations to be 1.')
+  # 将函数传递的参数传入proto结构
   configs = merge_external_params_with_configs(
       configs, hparams, kwargs_dict=kwargs)
+  # 载入proto配置
   model_config = configs['model']
   train_config = configs['train_config']
   train_input_config = configs['train_input_config']
   eval_config = configs['eval_config']
   eval_input_configs = configs['eval_input_configs']
+  # 深拷贝评估proto配置
   eval_on_train_input_config = copy.deepcopy(train_input_config)
+  # 根据输入参数更新配置, 直接输入的配置优先级高于写在配置文件里的参数
   eval_on_train_input_config.sample_1_of_n_examples = (
       sample_1_of_n_eval_on_train_examples)
   if override_eval_num_epochs and eval_on_train_input_config.num_epochs != 1:
@@ -655,7 +659,7 @@ def create_estimator_and_inputs(run_config,
   if train_steps is None and train_config.num_steps != 0:
     train_steps = train_config.num_steps
 
-  # 根据模型配置，选择模型
+  # 将新加入key:value添加到detection_model_fn_base中，使其可用
   detection_model_fn = functools.partial(
       detection_model_fn_base, model_config=model_config)
 

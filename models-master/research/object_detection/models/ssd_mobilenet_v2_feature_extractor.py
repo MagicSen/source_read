@@ -27,7 +27,7 @@ from nets.mobilenet import mobilenet_v2
 
 slim = tf.contrib.slim
 
-
+# 真正构建网络的部分
 class SSDMobileNetV2FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
   """SSD Feature Extractor using MobilenetV2 features."""
 
@@ -78,6 +78,7 @@ class SSDMobileNetV2FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
         override_base_feature_extractor_hyperparams=
         override_base_feature_extractor_hyperparams)
 
+  # 输入预处理部分, 将图的value变换到 [-1,1]
   def preprocess(self, resized_inputs):
     """SSD preprocessing.
 
@@ -93,6 +94,7 @@ class SSDMobileNetV2FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
     """
     return (2.0 / 255.0) * resized_inputs - 1.0
 
+  # 特征提取部分，接收预处理后的数据
   def extract_features(self, preprocessed_inputs):
     """Extract features from preprocessed inputs.
 

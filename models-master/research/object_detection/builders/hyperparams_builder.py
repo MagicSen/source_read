@@ -174,7 +174,7 @@ class KerasLayerHyperparams(object):
     new_params.update(**overrides)
     return new_params
 
-
+# 构建一般的tensorflow模型
 def build(hyperparams_config, is_training):
   """Builds tf-slim arg_scope for convolution ops based on the config.
 
@@ -209,6 +209,7 @@ def build(hyperparams_config, is_training):
     raise ValueError('hyperparams_config not of type '
                      'hyperparams_pb.Hyperparams.')
 
+  # 底层调用slim库构建基础网络层
   normalizer_fn = None
   batch_norm_params = None
   if hyperparams_config.HasField('batch_norm'):
@@ -217,11 +218,14 @@ def build(hyperparams_config, is_training):
         hyperparams_config.batch_norm, is_training)
   if hyperparams_config.HasField('group_norm'):
     normalizer_fn = tf.contrib.layers.group_norm
+  # 参数影响哪些网络层的设置，主要是卷积层
   affected_ops = [slim.conv2d, slim.separable_conv2d, slim.conv2d_transpose]
   if hyperparams_config.HasField('op') and (
       hyperparams_config.op == hyperparams_pb2.Hyperparams.FC):
     affected_ops = [slim.fully_connected]
+  # 构建参数空间
   def scope_fn():
+    # arg_scope可以快速修改指定网络层的默认参数
     with (slim.arg_scope([slim.batch_norm], **batch_norm_params)
           if batch_norm_params is not None else
           context_manager.IdentityContextManager()):

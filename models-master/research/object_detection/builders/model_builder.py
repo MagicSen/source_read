@@ -122,6 +122,7 @@ FASTER_RCNN_KERAS_FEATURE_EXTRACTOR_CLASS_MAP = {
 }
 
 
+# 配置ssd 特征提取层
 def _build_ssd_feature_extractor(feature_extractor_config,
                                  is_training,
                                  freeze_batchnorm,
@@ -143,18 +144,22 @@ def _build_ssd_feature_extractor(feature_extractor_config,
   Raises:
     ValueError: On invalid feature extractor type.
   """
+  # 得到特征提取层类型
   feature_type = feature_extractor_config.type
   is_keras_extractor = feature_type in SSD_KERAS_FEATURE_EXTRACTOR_CLASS_MAP
   depth_multiplier = feature_extractor_config.depth_multiplier
+  # 网络深度？
   min_depth = feature_extractor_config.min_depth
   pad_to_multiple = feature_extractor_config.pad_to_multiple
   use_explicit_padding = feature_extractor_config.use_explicit_padding
+  # 是否使用depthwise结构
   use_depthwise = feature_extractor_config.use_depthwise
 
   if is_keras_extractor:
     conv_hyperparams = hyperparams_builder.KerasLayerHyperparams(
         feature_extractor_config.conv_hyperparams)
   else:
+    # 根据卷积层的超参数构建网络层, 这里返回的是根据指定配置调用slim库构建网络层
     conv_hyperparams = hyperparams_builder.build(
         feature_extractor_config.conv_hyperparams, is_training)
   override_base_feature_extractor_hyperparams = (
@@ -169,6 +174,7 @@ def _build_ssd_feature_extractor(feature_extractor_config,
         feature_type]
   else:
     feature_extractor_class = SSD_FEATURE_EXTRACTOR_CLASS_MAP[feature_type]
+  # 构建传递给真正构建网络的类，初始化输入参数
   kwargs = {
       'is_training':
           is_training,
@@ -221,12 +227,14 @@ def _build_ssd_feature_extractor(feature_extractor_config,
   return feature_extractor_class(**kwargs)
 
 
+# 真正构建ssd网络的部分
 def _build_ssd_model(ssd_config, is_training, add_summaries):
   """Builds an SSD detection model based on the model config.
 
   Args:
     ssd_config: A ssd.proto object containing the config for the desired
       SSDMetaArch.
+    # 模型构建是否开启训练，是否开启summary功能
     is_training: True if this model is being built for training purposes.
     add_summaries: Whether to add tf summaries in the model.
   Returns:
@@ -236,8 +244,10 @@ def _build_ssd_model(ssd_config, is_training, add_summaries):
     ValueError: If ssd_config.type is not recognized (i.e. not registered in
       model_class_map).
   """
+  # 类别数
   num_classes = ssd_config.num_classes
 
+  # 特征提取层, 包括卷积的参数，卷积初始化方法，BN层状态
   # Feature extractor
   feature_extractor = _build_ssd_feature_extractor(
       feature_extractor_config=ssd_config.feature_extractor,
@@ -252,6 +262,7 @@ def _build_ssd_model(ssd_config, is_training, add_summaries):
   negative_class_weight = ssd_config.negative_class_weight
   anchor_generator = anchor_generator_builder.build(
       ssd_config.anchor_generator)
+  # 判断特征提取器的类型，如果是keras需要重新构建predictor
   if feature_extractor.is_keras_model:
     ssd_box_predictor = box_predictor_builder.build_keras(
         hyperparams_fn=hyperparams_builder.KerasLayerHyperparams,
@@ -270,6 +281,7 @@ def _build_ssd_model(ssd_config, is_training, add_summaries):
   image_resizer_fn = image_resizer_builder.build(ssd_config.image_resizer)
   non_max_suppression_fn, score_conversion_fn = post_processing_builder.build(
       ssd_config.post_processing)
+  # 定义网络loss层
   (classification_loss, localization_loss, classification_weight,
    localization_weight, hard_example_miner, random_example_sampler,
    expected_loss_weights_fn) = losses_builder.build(ssd_config.loss)
@@ -600,6 +612,7 @@ def _build_experimental_model(config, is_training, add_summaries=True):
   return EXPERIMENTAL_META_ARCH_BUILDER_MAP[config.name](
       is_training, add_summaries)
 
+# 支持三种模型类型
 META_ARCHITECURE_BUILDER_MAP = {
     'ssd': _build_ssd_model,
     'faster_rcnn': _build_faster_rcnn_model,
@@ -607,6 +620,7 @@ META_ARCHITECURE_BUILDER_MAP = {
 }
 
 
+# 根据model_config创建模型, 是否加载summaries(用于tensorboard可视化)
 def build(model_config, is_training, add_summaries=True):
   """Builds a DetectionModel based on the model config.
 
@@ -621,14 +635,17 @@ def build(model_config, is_training, add_summaries=True):
   Raises:
     ValueError: On invalid meta architecture or model.
   """
+  # 判断是否采用detection_model
   if not isinstance(model_config, model_pb2.DetectionModel):
     raise ValueError('model_config not of type model_pb2.DetectionModel.')
 
+  # 选择模型类型
   meta_architecture = model_config.WhichOneof('model')
-
+  # 判断是否支持该模型类型
   if meta_architecture not in META_ARCHITECURE_BUILDER_MAP:
     raise ValueError('Unknown meta architecture: {}'.format(meta_architecture))
   else:
     build_func = META_ARCHITECURE_BUILDER_MAP[meta_architecture]
+    # getattr用于获取对象的特定属性值，这里是得到model_config.ssd
     return build_func(getattr(model_config, meta_architecture), is_training,
                       add_summaries)

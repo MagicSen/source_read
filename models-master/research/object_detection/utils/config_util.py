@@ -84,6 +84,7 @@ def get_spatial_image_size(image_resizer_config):
   raise ValueError("Unknown image resizer type.")
 
 
+# pipeline_config的解析函数，参照pipeline_pb2.TrainEvalPipelineConfg的定义来解析
 def get_configs_from_pipeline_file(pipeline_config_path, config_override=None):
   """Reads config from a file containing pipeline_pb2.TrainEvalPipelineConfig.
 
@@ -98,7 +99,9 @@ def get_configs_from_pipeline_file(pipeline_config_path, config_override=None):
       `train_input_config`, `eval_config`, `eval_input_config`. Value are the
       corresponding config objects.
   """
+  # 初始化TrainEvalPipelineConfig工具
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
+  # 读取config文件，持续载入配置
   with tf.gfile.GFile(pipeline_config_path, "r") as f:
     proto_str = f.read()
     text_format.Merge(proto_str, pipeline_config)
@@ -125,10 +128,12 @@ def create_configs_from_pipeline_proto(pipeline_config):
   configs["train_input_config"] = pipeline_config.train_input_reader
   configs["eval_config"] = pipeline_config.eval_config
   configs["eval_input_configs"] = pipeline_config.eval_input_reader
+  # eval_input_config只是向后兼容的缘故
   # Keeps eval_input_config only for backwards compatibility. All clients should
   # read eval_input_configs instead.
   if configs["eval_input_configs"]:
     configs["eval_input_config"] = configs["eval_input_configs"][0]
+  # 判断proto是否有key
   if pipeline_config.HasField("graph_rewriter"):
     configs["graph_rewriter_config"] = pipeline_config.graph_rewriter
 
@@ -482,6 +487,7 @@ def merge_external_params_with_configs(configs, hparams=None, kwargs_dict=None):
 
   if kwargs_dict is None:
     kwargs_dict = {}
+  # 为了扩展，新增的超参数，用来做拓展
   if hparams:
     kwargs_dict.update(hparams.values())
   for key, value in kwargs_dict.items():
