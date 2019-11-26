@@ -17,6 +17,7 @@
 General tensorflow implementation of convolutional Multibox/SSD detection
 models.
 """
+# abc库为定义抽象类的方法库，使得子类必须实现抽象方法，否则报错
 import abc
 import tensorflow as tf
 
@@ -33,7 +34,7 @@ from object_detection.utils import visualization_utils
 
 slim = tf.contrib.slim
 
-
+# 基于slim库的ssd feature提取层
 class SSDFeatureExtractor(object):
   """SSD Slim Feature Extractor definition."""
 
@@ -102,6 +103,7 @@ class SSDFeatureExtractor(object):
     """
     pass
 
+  # 抽象方法，需要实现
   @abc.abstractmethod
   def extract_features(self, preprocessed_inputs):
     """Extracts features from preprocessed inputs.
@@ -130,6 +132,7 @@ class SSDFeatureExtractor(object):
       the model graph.
     """
     variables_to_restore = {}
+    # 获取全局变量名，找到指定scope下的变量，替换名称为''
     for variable in variables_helper.get_global_variables_safely():
       var_name = variable.op.name
       if var_name.startswith(feature_extractor_scope + '/'):
@@ -138,7 +141,7 @@ class SSDFeatureExtractor(object):
 
     return variables_to_restore
 
-
+# keras版本
 class SSDKerasFeatureExtractor(tf.keras.Model):
   """SSD Feature Extractor definition."""
 
@@ -238,6 +241,7 @@ class SSDKerasFeatureExtractor(tf.keras.Model):
     """
     raise NotImplementedError
 
+  # keras 版本特殊调用函数
   # This overrides the keras.Model `call` method with the _extract_features
   # method.
   def call(self, inputs, **kwargs):
@@ -440,6 +444,7 @@ class SSDMetaArch(model.DetectionModel):
     self._random_example_sampler = random_example_sampler
     self._parallel_iterations = 16
 
+    # resize函数
     self._image_resizer_fn = image_resizer_fn
     self._non_max_suppression_fn = non_max_suppression_fn
     self._score_conversion_fn = score_conversion_fn
@@ -457,6 +462,7 @@ class SSDMetaArch(model.DetectionModel):
         return_raw_detections_during_predict)
     self._nms_on_host = nms_on_host
 
+  # 定义anchors
   @property
   def anchors(self):
     if not self._anchors:
@@ -482,7 +488,7 @@ class SSDMetaArch(model.DetectionModel):
     Args:
       inputs: a [batch, height_in, width_in, channels] float tensor representing
         a batch of images with values between 0 and 255.0.
-
+    # 返回预处理后的图像以及，原始图像尺寸
     Returns:
       preprocessed_inputs: a [batch, height_out, width_out, channels] float
         tensor representing a batch of images.
@@ -494,6 +500,7 @@ class SSDMetaArch(model.DetectionModel):
     Raises:
       ValueError: if inputs tensor does not have type tf.float32
     """
+    # 定义一个预处理命名空间
     with tf.name_scope('Preprocessor'):
       (resized_inputs,
        true_image_shapes) = shape_utils.resize_images_and_return_shapes(
@@ -502,6 +509,7 @@ class SSDMetaArch(model.DetectionModel):
       return (self._feature_extractor.preprocess(resized_inputs),
               true_image_shapes)
 
+  # 后处理采用滑动窗口的方法，需要借助原始图像尺寸
   def _compute_clip_window(self, preprocessed_images, true_image_shapes):
     """Computes clip window to use during post_processing.
 
@@ -529,13 +537,25 @@ class SSDMetaArch(model.DetectionModel):
 
     resized_inputs_shape = shape_utils.combined_static_and_dynamic_shape(
         preprocessed_images)
+    # unstack表示按某个维度返回tensor的值，例如：[batch_size, [height, width, channels]],
+    # 按axis=1, 访问[height, width, channels]
     true_heights, true_widths, _ = tf.unstack(
         tf.cast(true_image_shapes, dtype=tf.float32), axis=1)
     padded_height = tf.cast(resized_inputs_shape[1], dtype=tf.float32)
     padded_width = tf.cast(resized_inputs_shape[2], dtype=tf.float32)
+    # 按照axis的维度将几个tensor合为一个
+    '''
+      x = tf.constant([1, 4])
+      y = tf.constant([2, 5])
+      z = tf.constant([3, 6])
+      tf.stack([x, y, z])  # [[1, 4], [2, 5], [3, 6]] (Pack along first dim.)
+      tf.stack([x, y, z], axis=1)  # [[1, 2, 3], [4, 5, 6]]
+    '''
     return tf.stack(
         [
+            # 返回一个与true_heights同样尺寸类型的tensor
             tf.zeros_like(true_heights),
+            # 返回归一化的长宽坐标, pad为resize的尺寸
             tf.zeros_like(true_widths), true_heights / padded_height,
             true_widths / padded_width
         ],
@@ -559,6 +579,7 @@ class SSDMetaArch(model.DetectionModel):
         with zeros.
 
     Returns:
+      # 返回真实预测字典
       prediction_dict: a dictionary holding "raw" prediction tensors:
         1) preprocessed_inputs: the [batch, height, width, channels] image
           tensor.

@@ -50,6 +50,7 @@ class SSDMobileNetV2FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
     Args:
       is_training: whether the network is in training mode.
       depth_multiplier: float depth multiplier for feature extractor.
+      # 相当于feature map的channel数
       min_depth: minimum feature extractor depth.
       pad_to_multiple: the nearest multiple to zero pad the input height and
         width dimensions to.
@@ -106,12 +107,14 @@ class SSDMobileNetV2FeatureExtractor(ssd_meta_arch.SSDFeatureExtractor):
       feature_maps: a list of tensors where the ith tensor has shape
         [batch, height_i, width_i, depth_i]
     """
+    # 检查预处理后每个batch里图像尺寸，要求大于33个像素
     preprocessed_inputs = shape_utils.check_min_image_dim(
         33, preprocessed_inputs)
 
     feature_map_layout = {
         'from_layer': ['layer_15/expansion_output', 'layer_19', '', '', '', ''
                       ][:self._num_layers],
+        # 设置channel数
         'layer_depth': [-1, -1, 512, 256, 256, 128][:self._num_layers],
         'use_depthwise': self._use_depthwise,
         'use_explicit_padding': self._use_explicit_padding,

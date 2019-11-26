@@ -159,7 +159,8 @@ def get_variables_available_in_checkpoint(variables,
     return list(vars_in_ckpt.values())
   return vars_in_ckpt
 
-
+# 如果非eagerly模式，返回全局变量tf.global_variables()，
+# 全局变量是指分布式训练时的共享参数，如果提供scope，可以根据对应scope过滤出对应scope下的变量
 def get_global_variables_safely():
   """If not executing eagerly, returns tf.global_variables().
 

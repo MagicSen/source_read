@@ -158,7 +158,7 @@ def pad_or_clip_nd(tensor, output_shape):
   padded_tensor.set_shape(output_static_shape)
   return padded_tensor
 
-
+# 返回一个tensor内所有图像的尺寸
 def combined_static_and_dynamic_shape(tensor):
   """Returns a list containing static and dynamic values for the dimensions.
 
@@ -181,7 +181,7 @@ def combined_static_and_dynamic_shape(tensor):
       combined_shape.append(dynamic_tensor_shape[index])
   return combined_shape
 
-
+# 根据给定函数，做映射变换，可并行化处理
 def static_or_dynamic_map_fn(fn, elems, dtype=None,
                              parallel_iterations=32, back_prop=True):
   """Runs map_fn as a (static) for loop when possible.
@@ -255,6 +255,7 @@ def static_or_dynamic_map_fn(fn, elems, dtype=None,
   raise ValueError('`fn` should return a Tensor or a list of Tensors.')
 
 
+# 遍历image_tensor，如果哪幅图像的宽或高小于min_dim，报错
 def check_min_image_dim(min_dim, image_tensor):
   """Checks that the image width/height are greater than some number.
 
@@ -466,7 +467,7 @@ def expand_first_dimension(inputs, dims):
 
   return inputs_reshaped
 
-
+# 根据给定函数resize图像，并且返回原始图像尺寸
 def resize_images_and_return_shapes(inputs, image_resizer_fn):
   """Resizes images using the given function and returns their true shapes.
 
