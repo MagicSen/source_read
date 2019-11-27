@@ -92,6 +92,7 @@ def append_postprocessing_op(frozen_graph_def,
       Tensors are appended after postprocessing output.
 
   Returns:
+    # 将模型后处理操作放在Frozen GraphDef之后
     transformed_graph_def: Frozen GraphDef with postprocessing custom op
     appended
     TFLite_Detection_PostProcess custom op node has four outputs:
@@ -104,6 +105,7 @@ def append_postprocessing_op(frozen_graph_def,
     num_boxes: a float32 tensor of size 1 containing the number of detected
     boxes
   """
+  # 添加节点
   new_output = frozen_graph_def.node.add()
   new_output.op = 'TFLite_Detection_PostProcess'
   new_output.name = 'TFLite_Detection_PostProcess'
@@ -219,6 +221,7 @@ def export_tflite_graph(pipeline_config,
       pipeline_config.model.ssd.box_coder.faster_rcnn_box_coder.width_scale
   }
 
+  # 获取图像resize尺寸
   image_resizer_config = pipeline_config.model.ssd.image_resizer
   image_resizer = image_resizer_config.WhichOneof('image_resizer_oneof')
   num_channels = _DEFAULT_NUM_CHANNELS
@@ -234,23 +237,29 @@ def export_tflite_graph(pipeline_config,
         'is supported with tflite. Found {}'.format(
             image_resizer_config.WhichOneof('image_resizer_oneof')))
 
+  # 生成图像预留空间
   image = tf.placeholder(
       tf.float32, shape=shape, name='normalized_input_image_tensor')
 
+  # 构建模型，is_training设置为False
   detection_model = model_builder.build(
       pipeline_config.model, is_training=False)
+  # 获取输入的predict_tensors
   predicted_tensors = detection_model.predict(image, true_image_shapes=None)
+  # 根据配置生成后处理配置模块，并且作用于scores
   # The score conversion occurs before the post-processing custom op
   _, score_conversion_fn = post_processing_builder.build(
       pipeline_config.model.ssd.post_processing)
   class_predictions = score_conversion_fn(
       predicted_tensors['class_predictions_with_background'])
 
+  # 在命名空间中创建新节点，复制数据
   with tf.name_scope('raw_outputs'):
     # 'raw_outputs/box_encodings': a float32 tensor of shape [1, num_anchors, 4]
     #  containing the encoded box predictions. Note that these are raw
     #  predictions and no Non-Max suppression is applied on them and
     #  no decode center size boxes is applied to them.
+    # 返回box_encodings
     tf.identity(predicted_tensors['box_encodings'], name='box_encodings')
     # 'raw_outputs/class_predictions': a float32 tensor of shape
     #  [1, num_anchors, num_classes] containing the class scores for each anchor
@@ -266,6 +275,7 @@ def export_tflite_graph(pipeline_config,
   # evaluate the model.
   tf.train.get_or_create_global_step()
 
+  # 判断是否采用量化方式训练，判断方法是pipeline_config文件中是否有graph rewriter
   # graph rewriter
   is_quantized = pipeline_config.HasField('graph_rewriter')
   if is_quantized:
@@ -274,9 +284,11 @@ def export_tflite_graph(pipeline_config,
         graph_rewriter_config, is_training=False)
     graph_rewriter_fn()
 
+  # 判断模型是否有fpn层
   if pipeline_config.model.ssd.feature_extractor.HasField('fpn'):
     exporter.rewrite_nn_resize_op(is_quantized)
 
+  # 冻结网络
   # freeze the graph
   saver_kwargs = {}
   if pipeline_config.eval_config.use_moving_averages:
@@ -289,6 +301,7 @@ def export_tflite_graph(pipeline_config,
   else:
     checkpoint_to_use = trained_checkpoint_prefix
 
+  # 保存主干网络
   saver = tf.train.Saver(**saver_kwargs)
   input_saver_def = saver.as_saver_def()
   frozen_graph_def = exporter.freeze_graph_with_def_protos(
@@ -305,6 +318,7 @@ def export_tflite_graph(pipeline_config,
       output_graph='',
       initializer_nodes='')
 
+  # 添加模型后处理操作
   # Add new operation to do post processing in a custom op (TF Lite only)
   if add_postprocessing_op:
     transformed_graph_def = append_postprocessing_op(
@@ -321,7 +335,7 @@ def export_tflite_graph(pipeline_config,
   else:
     # Return frozen without adding post-processing custom op
     transformed_graph_def = frozen_graph_def
-
+  # 将模型数据序列化写入文件
   binary_graph = os.path.join(output_dir, binary_graph_name)
   with tf.gfile.GFile(binary_graph, 'wb') as f:
     f.write(transformed_graph_def.SerializeToString())

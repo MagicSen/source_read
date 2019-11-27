@@ -124,15 +124,19 @@ FLAGS = flags.FLAGS
 
 def main(argv):
   del argv  # Unused.
+  # 设置必选设置项
   flags.mark_flag_as_required('output_directory')
   flags.mark_flag_as_required('pipeline_config_path')
   flags.mark_flag_as_required('trained_checkpoint_prefix')
 
+  # 获取评估的config文件
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
 
+  # 合并命令行参数
   with tf.gfile.GFile(FLAGS.pipeline_config_path, 'r') as f:
     text_format.Merge(f.read(), pipeline_config)
   text_format.Merge(FLAGS.config_override, pipeline_config)
+  # 训练模型转为tflite
   export_tflite_ssd_graph_lib.export_tflite_graph(
       pipeline_config, FLAGS.trained_checkpoint_prefix, FLAGS.output_directory,
       FLAGS.add_postprocessing_op, FLAGS.max_detections,
