@@ -12,6 +12,7 @@ macro(caffe_set_caffe_link)
     endif()
   endif()
 endmacro()
+# cmake_parse_arguments 用来生成以指定规则定义的变量名，例如这里生成 CAFFE_SOURCE_GROUP_GLOB="xxx;xxx;xxx"
 ################################################################################################
 # Convenient command to setup source group for IDEs that support this feature (VS, XCode)
 # Usage:
@@ -19,7 +20,9 @@ endmacro()
 function(caffe_source_group group)
   cmake_parse_arguments(CAFFE_SOURCE_GROUP "" "" "GLOB;GLOB_RECURSE" ${ARGN})
   if(CAFFE_SOURCE_GROUP_GLOB)
+    # 用来从路径里获取匹配GLOB模式的文件，GLOB类似正则匹配，GLOB_RECURSE表示递归匹配
     file(GLOB srcs1 ${CAFFE_SOURCE_GROUP_GLOB})
+    # srcs1中文件的相对路径放到group里
     source_group(${group} FILES ${srcs1})
   endif()
 
@@ -72,6 +75,7 @@ function(caffe_pickup_caffe_sources root)
   file(GLOB test_srcs    ${root}/src/caffe/test/test_*.cpp)
   file(GLOB_RECURSE hdrs ${root}/include/caffe/*.h*)
   file(GLOB_RECURSE srcs ${root}/src/caffe/*.cpp)
+  # 去掉重复的源文件
   list(REMOVE_ITEM  hdrs ${test_hdrs})
   list(REMOVE_ITEM  srcs ${test_srcs})
 
@@ -88,12 +92,14 @@ function(caffe_pickup_caffe_sources root)
   file(GLOB_RECURSE proto_files ${root}/src/caffe/*.proto)
   list(APPEND srcs ${proto_files})
 
+  # 转变为绝对路径
   # convert to absolute paths
   caffe_convert_absolute_paths(srcs)
   caffe_convert_absolute_paths(cuda)
   caffe_convert_absolute_paths(test_srcs)
   caffe_convert_absolute_paths(test_cuda)
 
+  # 通过PARENT_SCOPE关键字修改父级目录的参数
   # propagate to parent scope
   set(srcs ${srcs} PARENT_SCOPE)
   set(cuda ${cuda} PARENT_SCOPE)
@@ -101,6 +107,7 @@ function(caffe_pickup_caffe_sources root)
   set(test_cuda ${test_cuda} PARENT_SCOPE)
 endfunction()
 
+# 设置目标属性-值对儿
 ################################################################################################
 # Short command for setting default target properties
 # Usage:
@@ -113,10 +120,12 @@ function(caffe_default_properties target)
     RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
   # make sure we build all external dependencies first
   if (DEFINED external_project_dependencies)
+    # 设置目标依赖
     add_dependencies(${target} ${external_project_dependencies})
   endif()
 endfunction()
 
+# 设置运行目录
 ################################################################################################
 # Short command for setting runtime directory for build target
 # Usage:
@@ -126,6 +135,7 @@ function(caffe_set_runtime_directory target dir)
     RUNTIME_OUTPUT_DIRECTORY "${dir}")
 endfunction()
 
+# 设置解决方案目录
 ################################################################################################
 # Short command for setting solution folder property for target
 # Usage:

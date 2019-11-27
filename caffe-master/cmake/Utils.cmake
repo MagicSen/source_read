@@ -70,6 +70,7 @@ function(caffe_merge_flag_lists out_var)
   set(${out_var} ${__result} PARENT_SCOPE)
 endfunction()
 
+# 得到文件的绝对路径
 ################################################################################################
 # Converts all paths in list to absolute
 # Usage:
@@ -171,6 +172,7 @@ function(caffe_option variable description value)
   set(__value ${value})
   set(__condition "")
   set(__varname "__value")
+  # 用来判断依赖项
   foreach(arg ${ARGN})
     if(arg STREQUAL "IF" OR arg STREQUAL "if")
       set(__varname "__condition")

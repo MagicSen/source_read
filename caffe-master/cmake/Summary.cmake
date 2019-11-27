@@ -1,3 +1,4 @@
+# caffe状态打印功能函数
 ################################################################################################
 # Caffe status report function.
 # Automatically align right column and selects text based on condition.

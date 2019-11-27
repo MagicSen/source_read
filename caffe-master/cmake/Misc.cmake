@@ -1,28 +1,35 @@
+# 设置项目编译类型
 # ---[ Configuration types
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Possible configurations" FORCE)
+# 设置该变量为高级变量(不会显示出现在cmake-gui中)
 mark_as_advanced(CMAKE_CONFIGURATION_TYPES)
 
 if(DEFINED CMAKE_BUILD_TYPE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 endif()
 
+# 如果用户没定义编译类型，默认Release
 # --[ If user doesn't specify build type then assume release
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# 项目语言判定
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_COMPILER_IS_CLANGXX TRUE)
 endif()
 
+# 设置解决方案类型，VS / Xcode
 # ---[ Solution folders
 caffe_option(USE_PROJECT_FOLDERS "IDE Solution folders" (MSVC_IDE OR CMAKE_GENERATOR MATCHES Xcode) )
 
+# 设置相关变量，全局属性
 if(USE_PROJECT_FOLDERS)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
   set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 endif()
 
+# 设置安装目录
 # ---[ Install options
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Default install path" FORCE)
@@ -38,12 +45,15 @@ if(${__is_systtem_dir} STREQUAL -1)
   set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 endif()
 
+# 设置编译过程中后处理运行的命令
+# 添加链接符号
 # ---[ Funny target
 if(UNIX OR APPLE)
   add_custom_target(symlink_to_build COMMAND "ln" "-sf" "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}/build"
                                      COMMENT "Adding symlink: <caffe_root>/build -> ${PROJECT_BINARY_DIR}" )
 endif()
 
+# 设置debug后缀
 # ---[ Set debug postfix
 set(Caffe_DEBUG_POSTFIX "-d")
 
