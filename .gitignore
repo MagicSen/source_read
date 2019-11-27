@@ -1,2 +1,9 @@
 # ignore
 HeadPosePnP-master/build/*
+HeadPosePnP-master/*.png
+HeadPosePnP-master/*.jpg
+HeadPosePnP-master/freeglut/*
+HeadPosePnP-master/glew-2.1.0/*
+HeadPosePnP-master/new_hat.obj.mtl
+HeadPosePnP-master/head_with_hat.mlp
+HeadPosePnP-master/README.md
