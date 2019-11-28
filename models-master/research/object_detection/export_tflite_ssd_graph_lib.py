@@ -105,10 +105,11 @@ def append_postprocessing_op(frozen_graph_def,
     num_boxes: a float32 tensor of size 1 containing the number of detected
     boxes
   """
-  # 添加节点
+  # 冻结网络添加节点
   new_output = frozen_graph_def.node.add()
   new_output.op = 'TFLite_Detection_PostProcess'
   new_output.name = 'TFLite_Detection_PostProcess'
+  # 为节点添加属性
   new_output.attr['_output_quantized'].CopyFrom(
       attr_value_pb2.AttrValue(b=True))
   new_output.attr['_output_types'].list.type.extend([
@@ -147,6 +148,7 @@ def append_postprocessing_op(frozen_graph_def,
   input_names = []
   output_names = ['TFLite_Detection_PostProcess'
                  ] + list(additional_output_tensors)
+  # 利用TransformGraph操作，剔除没有使用的节点
   transforms = ['strip_unused_nodes']
   transformed_graph_def = TransformGraph(frozen_graph_def, input_names,
                                          output_names, transforms)
@@ -271,6 +273,8 @@ def export_tflite_graph(pipeline_config,
       get_const_center_size_encoded_anchors(predicted_tensors['anchors']),
       name='anchors')
 
+  # 得到全局的global step, 这个参数用于跟进全局训练以及update网络权重
+  # 有了这个量化才能修改网络权重
   # Add global step to the graph, so we know the training step number when we
   # evaluate the model.
   tf.train.get_or_create_global_step()
@@ -288,7 +292,7 @@ def export_tflite_graph(pipeline_config,
   if pipeline_config.model.ssd.feature_extractor.HasField('fpn'):
     exporter.rewrite_nn_resize_op(is_quantized)
 
-  # 冻结网络
+  # 是否采用移动平均模型，冻结网络
   # freeze the graph
   saver_kwargs = {}
   if pipeline_config.eval_config.use_moving_averages:
@@ -302,12 +306,15 @@ def export_tflite_graph(pipeline_config,
     checkpoint_to_use = trained_checkpoint_prefix
 
   # 保存主干网络
+  # **表示传递未知个数的参数，参数列表用dict保存
+  # * 表示传递未知个数的参数，参数列表位list保存
   saver = tf.train.Saver(**saver_kwargs)
   input_saver_def = saver.as_saver_def()
   frozen_graph_def = exporter.freeze_graph_with_def_protos(
       input_graph_def=tf.get_default_graph().as_graph_def(),
       input_saver_def=input_saver_def,
       input_checkpoint=checkpoint_to_use,
+      # 声明输出node的名字
       output_node_names=','.join([
           'raw_outputs/box_encodings', 'raw_outputs/class_predictions',
           'anchors'
@@ -318,7 +325,7 @@ def export_tflite_graph(pipeline_config,
       output_graph='',
       initializer_nodes='')
 
-  # 添加模型后处理操作
+  # 添加模型后处理操作，这里只针对tflite有后处理操作
   # Add new operation to do post processing in a custom op (TF Lite only)
   if add_postprocessing_op:
     transformed_graph_def = append_postprocessing_op(
@@ -333,6 +340,7 @@ def export_tflite_graph(pipeline_config,
         use_regular_nms,
         additional_output_tensors=additional_output_tensors)
   else:
+    # 不添加模型后处理
     # Return frozen without adding post-processing custom op
     transformed_graph_def = frozen_graph_def
   # 将模型数据序列化写入文件
