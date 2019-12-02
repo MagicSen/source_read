@@ -24,6 +24,7 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import java.util.Vector;
 
+// 绘制文字的类
 /** A class that encapsulates the tedious bits of rendering legible, bordered text onto a canvas. */
 public class BorderedText {
   private final Paint interiorPaint;

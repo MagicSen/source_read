@@ -39,6 +39,7 @@ import java.util.Vector;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
+// 实现的是object_detection下的模型
 /**
  * Wrapper for frozen detection models trained using the Tensorflow Object Detection API:
  * github.com/tensorflow/models/tree/master/research/object_detection
@@ -46,6 +47,7 @@ import org.tensorflow.lite.examples.detection.env.Logger;
 public class TFLiteObjectDetectionAPIModel implements Classifier {
   private static final Logger LOGGER = new Logger();
 
+  // 最多返回10个结果
   // Only return this many results.
   private static final int NUM_DETECTIONS = 10;
   // Float model
@@ -80,6 +82,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
 
   private TFLiteObjectDetectionAPIModel() {}
 
+  // 载入tflite模型
   /** Memory-map the model file in Assets. */
   private static MappedByteBuffer loadModelFile(AssetManager assets, String modelFilename)
       throws IOException {
@@ -133,7 +136,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
+    // 是否开启量化
     d.isModelQuantized = isQuantized;
     // Pre-allocate buffers.
     int numBytesPerChannel;
@@ -145,6 +148,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     //d.imgData = ByteBuffer.allocateDirect(1 * d.inputSize * d.inputSize * 3 * numBytesPerChannel);
     d.imgData = ByteBuffer.allocateDirect(1 * d.inputHeight * d.inputWidth * 3 * numBytesPerChannel);
 
+    // 设置为默认的顺序
     d.imgData.order(ByteOrder.nativeOrder());
     //d.intValues = new int[d.inputSize * d.inputSize];
     d.intValues = new int[d.inputHeight * d.inputWidth];
@@ -167,6 +171,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     // on the provided parameters.
     bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
 
+    // 将当前下标置为0，构造模型输入数据
     imgData.rewind();
     //for (int i = 0; i < inputSize; ++i) {
       //for (int j = 0; j < inputSize; ++j) {
@@ -194,6 +199,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
 
     // Copy the input data into TensorFlow.
     Trace.beginSection("feed");
+    // 构造模型输出接收的数据
     outputLocations = new float[1][NUM_DETECTIONS][4];
     outputClasses = new float[1][NUM_DETECTIONS];
     outputScores = new float[1][NUM_DETECTIONS];
@@ -207,6 +213,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     outputMap.put(3, numDetections);
     Trace.endSection();
 
+    // 调用tflite模型
     // Run the inference call.
     Trace.beginSection("run");
     tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
@@ -220,11 +227,13 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
       float xmin = outputLocations[0][i][1];
       float ymax = outputLocations[0][i][2];
       float xmax = outputLocations[0][i][3];
+      // 剔除异常值
       if(xmin > xmax || ymin > ymax || xmin < 0 || xmax < 0 || ymin < 0 || ymax < 0 || xmin > 1 || xmax > 1 || ymin > 1 || ymax > 1 || outputScores[0][i] > 1) {
         //outputScores[0][i] = 0;
         continue;
       }
 
+      // 乘以原始输出框尺寸
       final RectF detection =
           new RectF(
               //outputLocations[0][i][1] * inputSize,
@@ -240,6 +249,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
       // SSD Mobilenet V1 Model assumes class 0 is background class
       // in label file and class labels start from 1 to number_of_classes+1,
       // while outputClasses correspond to class index from 0 to number_of_classes
+      // 根据label map得到label
       int labelOffset = 1;
       recognitions.add(
           new Recognition(

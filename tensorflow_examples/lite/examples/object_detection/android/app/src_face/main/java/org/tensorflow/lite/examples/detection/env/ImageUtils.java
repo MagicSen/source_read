@@ -21,15 +21,19 @@ import android.os.Environment;
 import java.io.File;
 import java.io.FileOutputStream;
 
+// android下图像操作类
 /** Utility class for manipulating images. */
 public class ImageUtils {
+  // 约束图像RGB的范围
   // This value is 2 ^ 18 - 1, and is used to clamp the RGB values before their ranges
   // are normalized to eight bits.
   static final int kMaxChannelValue = 262143;
 
+  // 全局唯一日志，关闭未使用报警
   @SuppressWarnings("unused")
   private static final Logger LOGGER = new Logger();
 
+  // 得到YUV420图像的size
   /**
    * Utility method to compute the allocated size in bytes of a YUV420SP image of the given
    * dimensions.
@@ -45,6 +49,7 @@ public class ImageUtils {
     return ySize + uvSize;
   }
 
+  // 保存一张bitmap
   /**
    * Saves a Bitmap object to disk for analysis.
    *
@@ -61,6 +66,7 @@ public class ImageUtils {
    * @param filename The location to save the bitmap to.
    */
   public static void saveBitmap(final Bitmap bitmap, final String filename) {
+    // 获取外部存储器的根目录并且设置一个外部存储器
     final String root =
         Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "tensorflow";
     LOGGER.i("Saving %dx%d bitmap to %s.", bitmap.getWidth(), bitmap.getHeight(), root);
@@ -72,10 +78,12 @@ public class ImageUtils {
 
     final String fname = filename;
     final File file = new File(myDir, fname);
+    // 如果源文件存在，删除
     if (file.exists()) {
       file.delete();
     }
     try {
+      // 写入bitmap
       final FileOutputStream out = new FileOutputStream(file);
       bitmap.compress(Bitmap.CompressFormat.PNG, 99, out);
       out.flush();
@@ -86,6 +94,7 @@ public class ImageUtils {
     }
   }
 
+  // YUV转RGB
   public static void convertYUV420SPToARGB8888(byte[] input, int width, int height, int[] output) {
     final int frameSize = width * height;
     for (int j = 0, yp = 0; j < height; j++) {
@@ -180,9 +189,11 @@ public class ImageUtils {
         LOGGER.w("Rotation of %d % 90 != 0", applyRotation);
       }
 
+      // 转换变换中心改为图像
       // Translate so center of image is at origin.
       matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
 
+      // 旋转操作
       // Rotate around origin.
       matrix.postRotate(applyRotation);
     }
@@ -199,6 +210,7 @@ public class ImageUtils {
       final float scaleFactorX = dstWidth / (float) inWidth;
       final float scaleFactorY = dstHeight / (float) inHeight;
 
+      // 是否保长宽比
       if (maintainAspectRatio) {
         // Scale by minimum factor so that dst is filled completely while
         // maintaining the aspect ratio. Some image may fall off the edge.

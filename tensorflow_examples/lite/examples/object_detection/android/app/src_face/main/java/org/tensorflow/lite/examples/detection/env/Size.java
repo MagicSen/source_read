@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+// 抽象一级Size类，方便比较
 /** Size class independent of a Camera object. */
 public class Size implements Comparable<Size>, Serializable {
 

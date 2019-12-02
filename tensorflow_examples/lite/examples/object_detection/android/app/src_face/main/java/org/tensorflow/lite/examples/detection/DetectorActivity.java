@@ -47,6 +47,7 @@ import org.tensorflow.lite.examples.detection.tracking.MultiBoxTracker;
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
  * objects.
  */
+// 检测的Activity继承自相机Activity，并且要实现OnImageAvailableListener
 public class DetectorActivity extends CameraActivity implements OnImageAvailableListener {
   private static final Logger LOGGER = new Logger();
 
@@ -67,35 +68,46 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   //private static final String TF_OD_API_MODEL_FILE = "face_detect_quan.tflite";
 */
 
-
+// 设置detection模型输入参数，包括图像长宽
 private static final int TF_OD_API_INPUT_SIZE = 300;
 private static final int TF_OD_API_INPUT_HEIGHT = 240;
 private static final int TF_OD_API_INPUT_WIDTH = 320;
 
 //private static final boolean TF_OD_API_IS_QUANTIZED = false;
 //private static final String TF_OD_API_MODEL_FILE = "face_detect_20191128.tflite";
+// 是否开启量化
 private static final boolean TF_OD_API_IS_QUANTIZED = true;
 private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_20191128.tflite";
 
 //private static final boolean TF_OD_API_IS_QUANTIZED = true;
 //private static final String TF_OD_API_MODEL_FILE = "face_detect_quan.tflite";
 
+// 类别映射文件
   private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/facelabelmap.txt";
 
   private static final DetectorMode MODE = DetectorMode.TF_OD_API;
+  // 检测框的最小confidence
   // Minimum detection confidence to track a detection.
   private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.5f;
+  // 设置是否保持长宽比
   private static final boolean MAINTAIN_ASPECT = false;
+  // 设置预览窗口尺寸
   private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 480);
   //private static final Size DESIRED_PREVIEW_SIZE = new Size(320, 240);
+  // 是否保存预览图像bitmap
   private static final boolean SAVE_PREVIEW_BITMAP = false;
+  // 设置文字大小
   private static final float TEXT_SIZE_DIP = 10;
   OverlayView trackingOverlay;
+  // 传感器方向
   private Integer sensorOrientation;
 
+  // 创建检测器
   private Classifier detector;
 
+  // 最近一次处理耗时
   private long lastProcessingTimeMs;
+  // 构造输入的bitmap
   private Bitmap rgbFrameBitmap = null;
   private Bitmap croppedBitmap = null;
   private Bitmap cropCopyBitmap = null;
@@ -111,6 +123,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
 
   private BorderedText borderedText;
 
+  // 获取resize之后的图像
   public Bitmap resizeImage(Bitmap bitmap, int w, int h) {
     Bitmap BitmapOrg = bitmap;
     int width = BitmapOrg.getWidth();
@@ -118,9 +131,11 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     int newWidth = w;
     int newHeight = h;
 
+    // 获取scale的尺寸
     float scaleWidth = ((float) newWidth) / width;
     float scaleHeight = ((float) newHeight) / height;
 
+    // 按照矩阵来操作实现放缩
     Matrix matrix = new Matrix();
     matrix.postScale(scaleWidth, scaleHeight);
     // if you want to rotate the Bitmap
@@ -156,6 +171,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     borderedText = new BorderedText(textSizePx);
     borderedText.setTypeface(Typeface.MONOSPACE);
 
+    // 创建跟踪器
     tracker = new MultiBoxTracker(this);
 
     //int cropSize = TF_OD_API_INPUT_SIZE;
@@ -164,6 +180,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     int cropWidth = TF_OD_API_INPUT_WIDTH;
 
     try {
+      // 根据参数载入模型
       detector =
           TFLiteObjectDetectionAPIModel.create(
               getAssets(),
@@ -197,6 +214,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     //croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Config.ARGB_8888);
     croppedBitmap = Bitmap.createBitmap(cropWidth, cropHeight, Config.ARGB_8888);
 
+    // 获得图像变换矩阵, 图像可能旋转，可能有未保持长宽比的尺寸
     frameToCropTransform =
         ImageUtils.getTransformationMatrix(
             previewWidth, previewHeight,
@@ -207,6 +225,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     cropToFrameTransform = new Matrix();
     frameToCropTransform.invert(cropToFrameTransform);
 
+    // 获得tracking的叠加层
     trackingOverlay = (OverlayView) findViewById(R.id.tracking_overlay);
     trackingOverlay.addCallback(
         new DrawCallback() {
@@ -219,6 +238,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
           }
         });
 
+    // 设置帧参数
     tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
   }
 
@@ -251,6 +271,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     //croppedBitmap = resizeImage(croppedBitmap, 320, 240);
     //croppedBitmap = getResizedBitmap(croppedBitmap, 320, 240);
 
+    // 是否保存预览的bitmap
     if (SAVE_PREVIEW_BITMAP) {
       ImageUtils.saveBitmap(croppedBitmap);
     }
@@ -261,6 +282,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
           public void run() {
             LOGGER.i("Running detection on image " + currTimestamp);
             final long startTime = SystemClock.uptimeMillis();
+            // 预测结果
             final List<Classifier.Recognition> results = detector.recognizeImage(croppedBitmap);
             lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 
@@ -281,11 +303,14 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
             final List<Classifier.Recognition> mappedRecognitions =
                 new LinkedList<Classifier.Recognition>();
 
+            // 获取预测结果
             for (final Classifier.Recognition result : results) {
               final RectF location = result.getLocation();
               if (location != null && result.getConfidence() >= minimumConfidence) {
+                // 绘制矩形
                 canvas.drawRect(location, paint);
 
+                // 矩形框给到transform实例
                 cropToFrameTransform.mapRect(location);
 
                 result.setLocation(location);
@@ -302,6 +327,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
                 new Runnable() {
                   @Override
                   public void run() {
+                    // 显示预览分辨率与cropCopyBitmap的分辨率
                     showFrameInfo(previewWidth + "x" + previewHeight);
                     showCropInfo(cropCopyBitmap.getWidth() + "x" + cropCopyBitmap.getHeight());
                     showInference(lastProcessingTimeMs + "ms");
@@ -321,6 +347,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     return DESIRED_PREVIEW_SIZE;
   }
 
+// 使用的是哪种检测模型
   // Which detection model to use: by default uses Tensorflow Object Detection API frozen
   // checkpoints.
   private enum DetectorMode {
@@ -332,6 +359,7 @@ private static final String TF_OD_API_MODEL_FILE = "face_detect_quantized_201911
     runInBackground(() -> detector.setUseNNAPI(isChecked));
   }
 
+// 设置并行的线程数
   @Override
   protected void setNumThreads(final int numThreads) {
     runInBackground(() -> detector.setNumThreads(numThreads));

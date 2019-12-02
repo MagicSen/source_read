@@ -19,6 +19,7 @@ import android.graphics.Bitmap;
 import android.graphics.RectF;
 import java.util.List;
 
+// 通用分类识别框架，需要实现识别，定位的接口
 /** Generic interface for interacting with different recognition engines. */
 public interface Classifier {
   List<Recognition> recognizeImage(Bitmap bitmap);

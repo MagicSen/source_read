@@ -3,26 +3,39 @@
 
     <uses-sdk />
 
+    # 获得camera权限
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+    # 获得写入SD卡权限
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
+    # 相机自动对焦
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
+    # 应用整体设置
     <application
+        # 是否开启备份数据，默认开启，这里存在黑客攻击风险，设置为false
         android:allowBackup="false"
+        # 应用图标
         android:icon="@drawable/ic_launcher"
+        # 设置应用名称
         android:label="@string/app_name"
+        # 历史遗留图标问题
         android:roundIcon="@drawable/ic_launcher"
+        # 支持从右至左布局方式
         android:supportsRtl="true"
+        # app风格
         android:theme="@style/AppTheme">
 
         <activity
+            # 关联的Activity文件
             android:name=".DetectorActivity"
+            # 设置Activity名称
             android:label="@string/activity_name_detection"
+            # 屏幕显示方式，默认纵向显示
             android:screenOrientation="portrait">
+            # 设置为应用启动的入口Activity，并且默认用户可以启动
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
