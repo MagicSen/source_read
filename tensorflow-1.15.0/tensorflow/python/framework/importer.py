@@ -102,12 +102,15 @@ def _ProcessGraphDefParam(graph_def, op_dict):
     # depends on. It might make sense to move this to meta_graph.py and have
     # import_graph_def not modify the graph_def argument (we'd have to make sure
     # this doesn't break anything else.)
+    # 如果节点操作不在op_dict，则跳过
     for node in graph_def.node:
       if node.op not in op_dict:
         # Assume unrecognized ops are functions for now. TF_ImportGraphDef will
         # report an error if the op is actually missing.
         continue
+      # 根据op_dict得到操作的定义
       op_def = op_dict[node.op]
+      # 通过op_def补全node中没有的value
       _SetDefaultAttrValues(node, op_def)
 
   return graph_def
@@ -118,6 +121,7 @@ def _ProcessInputMapParam(input_map):
   if input_map is None:
     input_map = {}
   else:
+    # 确认input_map数据格式为: string: Tensor
     if not (isinstance(input_map, dict) and all(
         isinstance(k, compat.bytes_or_text_types) for k in input_map.keys())):
       raise TypeError('input_map must be a dictionary mapping strings to '
@@ -125,6 +129,7 @@ def _ProcessInputMapParam(input_map):
   return input_map
 
 
+# 检查返回的参数
 def _ProcessReturnElementsParam(return_elements):
   """Type-checks and possibly canonicalizes `return_elements`."""
   if return_elements is None:
@@ -336,10 +341,13 @@ def _GatherReturnElements(requested_return_elements, graph, results):
 def _SetDefaultAttrValues(node_def, op_def):
   """Set any default attr values in `node_def` that aren't present."""
   assert node_def.op == op_def.name
+  # 获取操作的属性
   for attr_def in op_def.attr:
     key = attr_def.name
+    # 有这个属性域且有默认数值
     if attr_def.HasField('default_value'):
       value = node_def.attr[key]
+      # 如果value为空或者没有，则从全集中拷贝过来
       if value is None or value.WhichOneof('value') is None:
         node_def.attr[key].CopyFrom(attr_def.default_value)
 
@@ -354,6 +362,7 @@ def import_graph_def(graph_def,
                      name=None,
                      op_dict=None,
                      producer_op_list=None):
+  # import graph为默认的graph
   """Imports the graph from `graph_def` into the current default `Graph`.
 
   This function provides a way to import a serialized TensorFlow
@@ -433,6 +442,7 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
   Args:
     graph_def: A `GraphDef` proto containing operations to be imported into the
       default graph.
+    # 一个输入映射表，用来得到graph_def中的Tensor与名称的映射关系
     input_map: A dictionary mapping input names (as strings) in `graph_def` to
       `Tensor` objects. The values of the named input tensors in the imported
       graph will be re-mapped to the respective `Tensor` values.
@@ -463,12 +473,14 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
       do not appear in `graph_def`, or `graph_def` is not well-formed (e.g.
       it refers to an unknown tensor).
   """
+  # 获取所有注册的op操作
   op_dict = op_def_registry.get_registered_ops()
 
   graph_def = _ProcessGraphDefParam(graph_def, op_dict)
   input_map = _ProcessInputMapParam(input_map)
   return_elements = _ProcessReturnElementsParam(return_elements)
 
+  # 移除producer_op_list相关的操作
   if producer_op_list is not None:
     # TODO(skyewm): make a copy of graph_def so we're not mutating the argument?
     _RemoveDefaultAttrs(op_dict, producer_op_list, graph_def)

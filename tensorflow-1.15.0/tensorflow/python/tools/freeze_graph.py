@@ -102,11 +102,15 @@ def freeze_graph_with_def_protos(input_graph_def,
     restore_op_name: Unused.
     filename_tensor_name: Unused.
     output_graph: String where to write the frozen `GraphDef`.
+    # 删除设备详情
     clear_devices: A Bool whether to remove device specifications.
+    # 采用逗号分隔要在freezing之前初始化的节点
     initializer_nodes: Comma separated string of initializer nodes to run before
                        freezing.
+    # 变量名的白名单
     variable_names_whitelist: The set of variable names to convert (optional, by
                               default, all variables are converted).
+    # 变量名的黑名单    
     variable_names_blacklist: The set of variable names to omit converting
                               to constants (optional).
     input_meta_graph_def: A `MetaGraphDef` (optional),
@@ -120,6 +124,7 @@ def freeze_graph_with_def_protos(input_graph_def,
   Returns:
     Location of the output_graph_def.
   """
+  # 弃用变量
   del restore_op_name, filename_tensor_name  # Unused by updated loading code.
 
   # 'input_checkpoint' may be a prefix if we're using Saver V2 format
@@ -132,12 +137,14 @@ def freeze_graph_with_def_protos(input_graph_def,
     raise ValueError(
         "You need to supply the name of a node to --output_node_names.")
 
+  # 剔除设备信息，方便模型迁移
   # Remove all the explicit device specifications for this node. This helps to
   # make the graph more portable.
   if clear_devices:
     if input_meta_graph_def:
       for node in input_meta_graph_def.graph_def.node:
         node.device = ""
+    # 删除所有节点的device信息
     elif input_graph_def:
       for node in input_graph_def.node:
         node.device = ""
