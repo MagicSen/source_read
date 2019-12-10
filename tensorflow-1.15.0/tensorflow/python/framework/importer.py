@@ -39,6 +39,7 @@ def _IsControlInput(input_name):
   return input_name.startswith('^')
 
 
+# 解析Tensor名称，返回操作数名称以及输出下标
 def _ParseTensorName(tensor_name):
   """Parses a tensor name into an operation name and output index.
 
@@ -196,13 +197,14 @@ def _ConvertInputMapValues(name, input_map):
   Raises:
     ValueError: if input map values cannot be converted due to empty name scope.
   """
+  # 确保input_map的value都是Tensor
   if not all(isinstance(v, ops.Tensor) for v in input_map.values()):
     if name == '':  # pylint: disable=g-explicit-bool-comparison
       raise ValueError(
           'tf.import_graph_def() requires a non-empty `name` if `input_map` '
           'contains non-Tensor values. Try calling tf.convert_to_tensor() on '
           '`input_map` values before calling tf.import_graph_def().')
-    # 创建输入的tensor
+    # 在新命名空间_inputs中，创建输入的tensor
     with ops.name_scope('_inputs'):
       input_map = {k: ops.convert_to_tensor(v) for k, v in input_map.items()}
   return input_map
@@ -211,28 +213,33 @@ def _ConvertInputMapValues(name, input_map):
 def _PopulateTFImportGraphDefOptions(options, prefix, input_map,
                                      return_elements,
                                      validate_colocation_constraints):
+  # 设置前缀
   """Populates the TF_ImportGraphDefOptions `options`."""
   c_api.TF_ImportGraphDefOptionsSetPrefix(options, prefix)
   c_api.TF_ImportGraphDefOptionsSetUniquifyNames(options, True)
 
   for input_src, input_dst in input_map.items():
     input_src = compat.as_str(input_src)
+    # 解析操作符OPS
     if input_src.startswith('^'):
       src_name = compat.as_str(input_src[1:])
       dst_op = input_dst._as_tf_output().oper  # pylint: disable=protected-access
       c_api.TF_ImportGraphDefOptionsRemapControlDependency(
           options, src_name, dst_op)
     else:
+    # 解析Tensor
       src_name, src_idx = _ParseTensorName(input_src)
       src_name = compat.as_str(src_name)
       dst_output = input_dst._as_tf_output()  # pylint: disable=protected-access
       c_api.TF_ImportGraphDefOptionsAddInputMapping(options, src_name, src_idx,
                                                     dst_output)
   for name in return_elements or []:
+    # 解析tensor
     if ':' in name:
       op_name, index = _ParseTensorName(name)
       op_name = compat.as_str(op_name)
       c_api.TF_ImportGraphDefOptionsAddReturnOutput(options, op_name, index)
+    # 解析操作数
     else:
       c_api.TF_ImportGraphDefOptionsAddReturnOperation(options,
                                                        compat.as_str(name))
@@ -329,10 +336,12 @@ def _GatherReturnElements(requested_return_elements, graph, results):
   outputs_idx = 0
   opers_idx = 0
   for name in requested_return_elements:
+    # 如果是tensor
     if ':' in name:
       combined_return_elements.append(
           graph._get_tensor_by_tf_output(return_outputs[outputs_idx]))  # pylint: disable=protected-access
       outputs_idx += 1
+    # 如果是操作数
     else:
       combined_return_elements.append(
           graph._get_operation_by_tf_operation(return_opers[opers_idx]))  # pylint: disable=protected-access
@@ -449,14 +458,18 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
     input_map: A dictionary mapping input names (as strings) in `graph_def` to
       `Tensor` objects. The values of the named input tensors in the imported
       graph will be re-mapped to the respective `Tensor` values.
+    # 一系列在graph_def中的操作符/Tensor的名称(字符串)
     return_elements: A list of strings containing operation names in `graph_def`
       that will be returned as `Operation` objects; and/or tensor names in
       `graph_def` that will be returned as `Tensor` objects.
+    # 是否需要验证
     validate_colocation_constraints: Whether to validate colocation constraints.
+    # 添加前缀，对于函数名不起作用，函数名前默认加import
     name: (Optional.) A prefix that will be prepended to the names in
       `graph_def`. Note that this does not apply to imported function names.
       Defaults to `"import"`.
     op_dict: (Optional.) Deprecated, do not use.
+    # 使某些默认参数失效
     producer_op_list: (Optional.) An `OpList` proto with the (possibly stripped)
       list of `OpDef`s used by the producer of the graph. If provided,
       unrecognized attrs for ops in `graph_def` that have their default value
@@ -464,6 +477,7 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
       `GraphDef`s produced by later binaries to be accepted by earlier binaries.
 
   Returns:
+    # 返回returen_elements里需要得到的Operation或Tensor
     A list of `Operation` and/or `Tensor` objects from the imported graph,
     corresponding to the names in `return_elements`,
     and None if `returns_elements` is None.
@@ -479,10 +493,12 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
   # 获取所有注册的op操作
   op_dict = op_def_registry.get_registered_ops()
 
+  # 初始化内部某些属性，并且确认参数有效
   graph_def = _ProcessGraphDefParam(graph_def, op_dict)
   input_map = _ProcessInputMapParam(input_map)
   return_elements = _ProcessReturnElementsParam(return_elements)
 
+  # 处理Tensor
   # 移除producer_op_list相关的操作
   if producer_op_list is not None:
     # TODO(skyewm): make a copy of graph_def so we're not mutating the argument?
@@ -505,7 +521,8 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
     # Generate any input map tensors inside name scope
     input_map = _ConvertInputMapValues(name, input_map)
 
-  # 类型 TF_NewImportGraphDefOptions
+  # 类型 TF_NewImportGraphDefOptions，增加一个析构函数
+  # 这里几乎都是调用底层C函数完成模型抽取
   scoped_options = c_api_util.ScopedTFImportGraphDefOptions()
   options = scoped_options.options
   _PopulateTFImportGraphDefOptions(options, prefix, input_map, return_elements,
@@ -515,6 +532,7 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
   # Session.run call cannot occur between creating the TF_Operations in the
   # TF_GraphImportGraphDefWithResults call and mutating the them in
   # _ProcessNewOps.
+  # 加锁
   with graph._mutation_lock():  # pylint: disable=protected-access
     with c_api_util.tf_buffer(graph_def.SerializeToString()) as serialized:
       try:
@@ -534,14 +552,14 @@ def _import_graph_def_internal(  # pylint: disable=invalid-name
     #
     # TODO(skyewm): fetch the TF_Functions directly from the TF_Graph
     # TODO(skyewm): avoid sending serialized FunctionDefs back to the TF_Graph
-
+    # 添加新的Ops，这块儿没太看懂
     _ProcessNewOps(graph)
 
   if graph_def.library and graph_def.library.function:
     functions = function.from_library(graph_def.library)
     for f in functions:
       f.add_to_graph(graph)
-
+  # 检查input map 是否都在graph中，如果不在则认为是一个错误
   # Treat input mappings that don't appear in the graph as an error, because
   # they are likely to be due to a typo.
   missing_unused_input_keys = (

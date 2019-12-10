@@ -51,7 +51,7 @@ class ScopedTFGraph(object):
     if c_api is not None and c_api.TF_DeleteGraph is not None:
       c_api.TF_DeleteGraph(self.graph)
 
-# 增加析构函数的options
+# 增加析构函数的options，对接C接口
 class ScopedTFImportGraphDefOptions(object):
   """Wrapper around TF_ImportGraphDefOptions that handles deletion."""
 
