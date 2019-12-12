@@ -18,6 +18,7 @@ TASK_REGISTRY = {}
 TASK_CLASS_NAMES = set()
 
 
+# 根据配置创建训练任务
 def build_task(config):
     """Builds a ClassyTask from a config.
 

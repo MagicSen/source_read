@@ -11,7 +11,7 @@ from classy_vision.dataset import ClassyDataset, register_dataset
 from classy_vision.dataset.transforms import ClassyTransform, build_transforms
 from torchvision.datasets import ImageFolder
 
-
+# 此处相当于函数嵌套register_dataset("classy_imagenet", ImageNetDataset)
 @register_dataset("classy_imagenet")
 class ImageNetDataset(ClassyDataset):
     def __init__(

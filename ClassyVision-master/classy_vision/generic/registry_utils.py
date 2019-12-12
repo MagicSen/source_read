@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 
+# 给定根目录，导入该根目录下的所有模块
 def import_all_modules(root, base_module):
     for file in os.listdir(root):
         if file.endswith((".py", ".pyc")) and not file.startswith("_"):
@@ -19,7 +20,7 @@ def import_all_modules(root, base_module):
                 module_name = ".".join([base_module, module])
                 importlib.import_module(module_name)
 
-
+# 包含带有__init__.py的模块
 def import_all_packages_from_directory(root):
     """Automatically imports all packages under the root directory.
 
