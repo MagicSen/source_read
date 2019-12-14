@@ -429,7 +429,7 @@ def compute_pr_curves(class_hist, total_hist):
 
     return {"prec": final_prec, "recall": final_recall, "ap": final_ap}
 
-
+# 根据任务，获取模型参数及状态
 def get_checkpoint_dict(task, input_args, deep_copy=False):
     assert isinstance(
         input_args, dict
@@ -518,13 +518,13 @@ def update_classy_state(task, state_dict):
 
     return False
 
-
+# 真正模型保存的地方
 def save_checkpoint(checkpoint_folder, state, checkpoint_file=CHECKPOINT_FILE):
     """
     Saves a state variable to the specified checkpoint folder. Returns filename
     of checkpoint if successful, and False otherwise.
     """
-
+    # 确认保存环境没问题
     # make sure that we have a checkpoint folder:
     if not os.path.isdir(checkpoint_folder):
         try:
@@ -542,6 +542,7 @@ def save_checkpoint(checkpoint_folder, state, checkpoint_file=CHECKPOINT_FILE):
             "w+b", dir=checkpoint_folder, delete=False
         ) as fwrite:
             tmp_fname = fwrite.name
+            # 保存模型状态
             torch.save(state, fwrite.name)
         full_filename = os.path.join(checkpoint_folder, checkpoint_file)
         os.rename(tmp_fname, full_filename)

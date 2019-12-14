@@ -27,7 +27,7 @@ class ClassyHookFunctions(Enum):
     on_phase_end = auto()
     on_end = auto()
 
-
+# 设置钩子函数的状态
 class ClassyHookState:
     """Class to store state within instances of ClassyHook.
 
@@ -40,7 +40,9 @@ class ClassyHookState:
     def set_classy_state(self, state_dict: Dict[str, Any]):
         self.__dict__ = state_dict
 
-
+# 基础钩子函数，类似硬件中的中断操作，某些操作结束后会调用配置的函数
+# Classy Vision将训练状态分为9个，对应有9个钩子
+# ABC是抽象类的基础类
 class ClassyHook(ABC):
     """Base class for hooks.
 
@@ -69,6 +71,7 @@ class ClassyHook(ABC):
     def __init__(self):
         self.state = ClassyHookState()
 
+    # 冒号这里表示该参数建议的数据类型
     def _noop(self, task: "tasks.ClassyTask", local_variables: Dict[str, Any]) -> None:
         """Derived classes can set their hook functions to this.
 
