@@ -588,6 +588,7 @@ class ClassificationTask(ClassyTask):
                     value, non_blocking=True
                 )
 
+        # 模型预测，需要调用model.eval()
         # Only need gradients during training
         context = torch.enable_grad() if self.train else torch.no_grad()
         with context:
