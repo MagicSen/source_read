@@ -10,7 +10,7 @@ import torch.nn as nn
 
 from .classy_model import ClassyModel
 
-
+# ClassyModel的封装器
 class ClassyModelWrapper(ClassyModel):
     """
     Class which wraps an `nn.Module <https://pytorch.org/docs/stable/

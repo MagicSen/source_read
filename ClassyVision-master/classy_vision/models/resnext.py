@@ -21,7 +21,7 @@ from .classy_model import ClassyModel
 # global setting for in-place ReLU:
 INPLACE = True
 
-
+# 核心ResNet的实现细节
 def conv3x3(in_planes, out_planes, stride=1, groups=1):
     """helper function for constructing 3x3 grouped convolution"""
     return nn.Conv2d(

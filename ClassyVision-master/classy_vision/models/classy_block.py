@@ -7,7 +7,7 @@
 import torch
 import torch.nn as nn
 
-
+# 实现一个nn.Module, 需要实现init, forward
 class ClassyBlock(nn.Module):
     """
     This is a thin wrapper for head execution, which records the output of
@@ -21,6 +21,7 @@ class ClassyBlock(nn.Module):
         self._module = module
         self._should_cache_output = False
 
+    # 是否缓存中间变量
     def set_cache_output(self, should_cache_output: bool = True):
         """
         Whether to cache the output of wrapped module for head execution.

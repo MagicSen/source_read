@@ -20,6 +20,7 @@ class ClassyModelEvaluationMode(Enum):
     VIDEO_CLIP_AVERAGING = 1
 
 
+# 一个典型的pytorch的Module实现，支持config配置，支持主干网络与头部网络分开配置
 class ClassyModel(nn.Module):
     """Base class for models in classy vision.
 
@@ -67,6 +68,7 @@ class ClassyModel(nn.Module):
         model.set_classy_state(checkpoint["classy_state_dict"]["base_model"])
         return model
 
+    # 获得classy state, 这个状态包括网络的结构，网络的参数，梯度，优化器
     def get_classy_state(self, deep_copy=False):
         """Get the state of the ClassyModel.
 
@@ -100,6 +102,7 @@ class ClassyModel(nn.Module):
             model_state_dict = copy.deepcopy(model_state_dict)
         return model_state_dict
 
+    # 载入头部模型状态及参数
     def load_head_states(self, state):
         """Load only the state (weights) of the heads.
 
@@ -115,6 +118,7 @@ class ClassyModel(nn.Module):
             for head_name, head_state in head_states.items():
                 self._heads[block_name][head_name].load_state_dict(head_state)
 
+    # 设置Module状态
     def set_classy_state(self, state):
         """Set the state of the ClassyModel.
 
@@ -280,7 +284,7 @@ class ClassyModel(nn.Module):
             "regularized_params": regularized_params,
             "unregularized_params": unregularized_params,
         }
-
+    # python中的装饰器，用于类内属性取值/赋值/删除等操作
     @property
     def input_shape(self):
         """If implemented, returns expected input tensor shape
