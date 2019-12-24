@@ -25,7 +25,7 @@ from torch._six import container_abcs
 CHECKPOINT_FILE = "checkpoint.torch"
 CPU_DEVICE = torch.device("cpu")
 
-
+# 判断是否为正数
 def is_pos_int(number):
     """
     Returns True if a number is a positive integer.

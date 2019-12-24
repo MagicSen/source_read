@@ -24,6 +24,7 @@ INPLACE = True
 # 核心ResNet的实现细节
 def conv3x3(in_planes, out_planes, stride=1, groups=1):
     """helper function for constructing 3x3 grouped convolution"""
+    # in_planes输入channel数，out_planes输出channel数
     return nn.Conv2d(
         in_planes,
         out_planes,
@@ -39,7 +40,7 @@ def conv1x1(in_planes, out_planes, stride=1):
     """helper function for constructing 1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
-
+# 基础网络层，其它Module都是基于该Module构建的
 class GenericLayer(nn.Module):
     """
         Parent class for 2-layer (BasicLayer) and 3-layer (BottleneckLayer)
@@ -57,10 +58,11 @@ class GenericLayer(nn.Module):
         final_bn_relu=True,
     ):
 
+        # 判断输入层维数不能为负
         # assertions on inputs:
         assert is_pos_int(in_planes) and is_pos_int(out_planes)
         assert is_pos_int(stride) and is_pos_int(reduction)
-
+        # 设置卷积层block，以及最后一层的bn+relu层
         # set object fields:
         super(GenericLayer, self).__init__()
         self.convolutional_block = convolutional_block
@@ -71,6 +73,7 @@ class GenericLayer(nn.Module):
             self.bn = nn.BatchNorm2d(out_planes)
             self.relu = nn.ReLU(inplace=INPLACE)
 
+        # 判断channel数是否一致，如果不一致增加1X1卷积压缩channel数，再补充一个batch_normal
         # define down-sampling layer (if direct residual impossible):
         self.downsample = None
         if stride != 1 or in_planes != out_planes:
@@ -80,20 +83,24 @@ class GenericLayer(nn.Module):
             )
 
     def forward(self, x):
-
+        # 加短链接，如果输入输出channel数不一致，利用conv1X1的降采样
         # if required, perform downsampling along shortcut connection:
         if self.downsample is None:
             residual = x
         else:
             residual = self.downsample(x)
 
+        # 增加convolutional block
         # forward pass through convolutional block:
         out = self.convolutional_block(x)
 
+        # 如果最后一层有bn，调用一次
         if self.final_bn_relu:
             out = self.bn(out)
+        # 添加resnet的短连接
         # add residual connection, perform rely + batchnorm, and return result:
         out += residual
+        # 如果最后一层有relu，调用一次
         if self.final_bn_relu:
             out = self.relu(out)
         return out
@@ -118,7 +125,8 @@ class BasicLayer(GenericLayer):
         # assertions on inputs:
         assert is_pos_int(in_planes) and is_pos_int(out_planes)
         assert is_pos_int(stride) and is_pos_int(reduction)
-
+        # 定义convoluation_block结构，并且传递给基类
+        # 3X3 卷积 + bn + relu + 3X3 卷积，其中bn层与relu最后一层卷积层的channel数相等
         # define convolutional block:
         convolutional_block = nn.Sequential(
             conv3x3(in_planes, out_planes, stride=stride),
@@ -153,18 +161,18 @@ class BottleneckLayer(GenericLayer):
         reduction=4,
         final_bn_relu=True,
     ):
-
         # assertions on inputs:
         assert is_pos_int(in_planes) and is_pos_int(out_planes)
         assert is_pos_int(stride) and is_pos_int(reduction)
 
+        # 定义一个bottleneck层
         # define convolutional layers:
         bottleneck_planes = int(math.ceil(out_planes / reduction))
         cardinality = 1
         if mid_planes_and_cardinality is not None:
             mid_planes, cardinality = mid_planes_and_cardinality
             bottleneck_planes = mid_planes * cardinality
-
+        # 1X1 卷积 ==> bn+relu ==> 3X3 卷积 ==> bn+relu ==》 1X1 卷积
         convolutional_block = nn.Sequential(
             conv1x1(in_planes, bottleneck_planes),
             nn.BatchNorm2d(bottleneck_planes),
@@ -187,7 +195,7 @@ class BottleneckLayer(GenericLayer):
             final_bn_relu=final_bn_relu,
         )
 
-
+# 一个简单的输入层
 class SmallInputInitialBlock(nn.Module):
     """
         ResNeXt initial block for small input with `in_planes` input planes
@@ -205,11 +213,12 @@ class SmallInputInitialBlock(nn.Module):
         return self._module(x)
 
 
+# 初始化block
 class InitialBlock(nn.Module):
     """
         ResNeXt initial block with `in_planes` input planes
     """
-
+    # 刚开始的网络层卷积核需要大一点
     def __init__(self, init_planes):
         super().__init__()
         self._module = nn.Sequential(
@@ -223,6 +232,7 @@ class InitialBlock(nn.Module):
         return self._module(x)
 
 
+# 初始化resnext的结构
 @register_model("resnext")
 class ResNeXt(ClassyModel):
     def __init__(
@@ -267,10 +277,12 @@ class ResNeXt(ClassyModel):
         self.small_input = small_input
         self._make_initial_block(small_input, init_planes, basic_layer)
 
+        # 根据block数目，计算输入输出层的channel数目
         # compute number of planes at each spatial resolution:
         out_planes = [init_planes * 2 ** i * reduction for i in range(len(num_blocks))]
         in_planes = [init_planes] + out_planes[:-1]
 
+        # 生成子block结构
         # create subnetworks for each spatial resolution:
         blocks = []
         for idx in range(len(out_planes)):
@@ -310,6 +322,7 @@ class ResNeXt(ClassyModel):
                     if hasattr(m, "bn"):
                         nn.init.constant_(m.bn.weight, 0)
 
+    # 根据输入尺寸，决定接入层的模块
     def _make_initial_block(self, small_input, init_planes, basic_layer):
         if small_input:
             self.initial_block = SmallInputInitialBlock(init_planes)
@@ -330,7 +343,7 @@ class ResNeXt(ClassyModel):
         reduction=4,
         final_bn_relu=True,
     ):
-
+        # 根据给定的block数目，构建Resnet结构
         # add the desired number of residual blocks:
         blocks = []
         for idx in range(num_blocks):
