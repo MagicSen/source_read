@@ -73,7 +73,7 @@ class TestFineTuningTask(unittest.TestCase):
                 fine_tuning_config = self._get_fine_tuning_config(
                     head_num_classes=heads_num_classes
                 )
-                fine_tuning_task = build_task(fine_tuning_config)
+                fine_tuning_task = build_task(_get_fine_tuning_config)
                 fine_tuning_task = (
                     fine_tuning_task.set_pretrained_checkpoint(
                         copy.deepcopy(checkpoint)

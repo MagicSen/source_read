@@ -9,6 +9,7 @@ class Compose(object):
 
     def __init__(self, transforms):
         assert isinstance(transforms, collections.abc.Sequence)
+        # 遍历配置项，生成变换函数
         self.transforms = []
         for transform in transforms:
             if isinstance(transform, dict):

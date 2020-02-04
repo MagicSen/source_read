@@ -31,20 +31,23 @@ class Registry(object):
         Args:
             module (:obj:`nn.Module`): Module to be registered.
         """
+        # 判断输入参数是否为一个类，非类则报错
         if not inspect.isclass(module_class):
             raise TypeError('module must be a class, but got {}'.format(
                 type(module_class)))
+        # 获取类的名字，标识为模块儿名
         module_name = module_class.__name__
         if module_name in self._module_dict:
             raise KeyError('{} is already registered in {}'.format(
                 module_name, self.name))
+        # 这里注册类内有一个_module_dict用来保存{类名:类}的字典映射
         self._module_dict[module_name] = module_class
 
     def register_module(self, cls):
         self._register_module(cls)
         return cls
 
-
+# 根据配置，从registry中生成模块
 def build_from_cfg(cfg, registry, default_args=None):
     """Build a module from config dict.
 
@@ -70,6 +73,7 @@ def build_from_cfg(cfg, registry, default_args=None):
     else:
         raise TypeError('type must be a str or valid type, but got {}'.format(
             type(obj_type)))
+    # 调用默认参数初始化
     if default_args is not None:
         for name, value in default_args.items():
             args.setdefault(name, value)

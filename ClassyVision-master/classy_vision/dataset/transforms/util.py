@@ -129,7 +129,7 @@ class ImagenetAugmentTransform(ClassyTransform):
         """
         return self.transform(img)
 
-
+# 通过归一化
 @register_transform("imagenet_no_augment")
 class ImagenetNoAugmentTransform(ClassyTransform):
     """The default image transform without data augmentation.
