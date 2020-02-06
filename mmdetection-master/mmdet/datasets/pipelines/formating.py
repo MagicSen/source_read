@@ -163,7 +163,7 @@ class Collect(object):
             - std - per channel std divisor
             - to_rgb - bool indicating if bgr was converted to rgb
     """
-
+    # 将冗余信息放到img_meta中，keys中根据所需任务收集信息
     def __init__(self,
                  keys,
                  meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape',
@@ -176,6 +176,7 @@ class Collect(object):
         img_meta = {}
         for key in self.meta_keys:
             img_meta[key] = results[key]
+        # 并行化处理数据
         data['img_meta'] = DC(img_meta, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]

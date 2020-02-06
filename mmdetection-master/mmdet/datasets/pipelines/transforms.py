@@ -55,6 +55,7 @@ class Resize(object):
             # mode 1: given a scale and a range of image ratio
             assert len(self.img_scale) == 1
         else:
+            # 两种尺度放缩的方法，value表示[min, max] 内随机，range表示按照区间生成
             # mode 2: given multiple scales or a range of scales
             assert multiscale_mode in ['value', 'range']
 
@@ -127,6 +128,7 @@ class Resize(object):
         img_shape = results['img_shape']
         for key in results.get('bbox_fields', []):
             bboxes = results[key] * results['scale_factor']
+            # 用来约束框的范围
             bboxes[:, 0::2] = np.clip(bboxes[:, 0::2], 0, img_shape[1] - 1)
             bboxes[:, 1::2] = np.clip(bboxes[:, 1::2], 0, img_shape[0] - 1)
             results[key] = bboxes
@@ -189,7 +191,7 @@ class RandomFlip(object):
     Args:
         flip_ratio (float, optional): The flipping probability.
     """
-
+    # 默认水平翻转
     def __init__(self, flip_ratio=None, direction='horizontal'):
         self.flip_ratio = flip_ratio
         self.direction = direction
@@ -220,6 +222,7 @@ class RandomFlip(object):
         return flipped
 
     def __call__(self, results):
+        # 根据翻转概率来翻转
         if 'flip' not in results:
             flip = True if np.random.rand() < self.flip_ratio else False
             results['flip'] = flip

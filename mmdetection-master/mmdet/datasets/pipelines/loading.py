@@ -6,7 +6,7 @@ import pycocotools.mask as maskUtils
 
 from ..registry import PIPELINES
 
-
+# 加载图像
 @PIPELINES.register_module
 class LoadImageFromFile(object):
 
@@ -14,14 +14,17 @@ class LoadImageFromFile(object):
         self.to_float32 = to_float32
 
     def __call__(self, results):
+        # 如果图像有目录，则添加目录
         if results['img_prefix'] is not None:
             filename = osp.join(results['img_prefix'],
                                 results['img_info']['filename'])
         else:
             filename = results['img_info']['filename']
+        # 载入图像
         img = mmcv.imread(filename)
         if self.to_float32:
             img = img.astype(np.float32)
+        # 对results某些字段赋值
         results['filename'] = filename
         results['img'] = img
         results['img_shape'] = img.shape
@@ -32,7 +35,7 @@ class LoadImageFromFile(object):
         return self.__class__.__name__ + '(to_float32={})'.format(
             self.to_float32)
 
-
+# 加载标注信息
 @PIPELINES.register_module
 class LoadAnnotations(object):
 
@@ -49,6 +52,7 @@ class LoadAnnotations(object):
         self.poly2mask = poly2mask
 
     def _load_bboxes(self, results):
+        # 加载检测框信息
         ann_info = results['ann_info']
         results['gt_bboxes'] = ann_info['bboxes']
 

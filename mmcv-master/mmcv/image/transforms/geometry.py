@@ -184,6 +184,7 @@ def impad(img, shape, pad_val=0):
         assert shape[i] >= img.shape[i]
     pad = np.empty(shape, dtype=img.dtype)
     pad[...] = pad_val
+    # 图像在左上角
     pad[:img.shape[0], :img.shape[1], ...] = img
     return pad
 

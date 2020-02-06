@@ -9,7 +9,7 @@ class Compose(object):
 
     def __init__(self, transforms):
         assert isinstance(transforms, collections.abc.Sequence)
-        # 遍历配置项，生成变换函数
+        # 遍历配置项，构建数据增广模块
         self.transforms = []
         for transform in transforms:
             if isinstance(transform, dict):
@@ -19,7 +19,7 @@ class Compose(object):
                 self.transforms.append(transform)
             else:
                 raise TypeError('transform must be callable or a dict')
-
+    # 调用pipeline处理数据
     def __call__(self, data):
         for t in self.transforms:
             data = t(data)

@@ -90,7 +90,7 @@ def get_version():
         exec(compile(f.read(), version_file, 'exec'))
     return locals()['__version__']
 
-
+# cuda代码编译配置
 def make_cuda_ext(name, module, sources):
 
     define_macros = []
@@ -139,18 +139,29 @@ def get_requirements(filename='requirements.txt'):
 
 
 if __name__ == '__main__':
+    # 获取版本信息
     write_version_py()
     setup(
+        # 模块儿名称
         name='mmdet',
         version=get_version(),
+        # 模块功能的简单描述
         description='Open MMLab Detection Toolbox and Benchmark',
+        # Markdown文档说明
         long_description=readme(),
+        # 作者
         author='OpenMMLab',
+        # 作者邮箱
         author_email='chenkaidev@gmail.com',
+        # 关键字
         keywords='computer vision, object detection',
+        # 项目的url
         url='https://github.com/open-mmlab/mmdetection',
+        # 自动发现所有包和子包
         packages=find_packages(exclude=('configs', 'tools', 'demo')),
+        # 包数据，通常是与软件包实现密切相关的数据
         package_data={'mmdet.ops': ['*/*.so']},
+        # 程序的所属分类列表
         classifiers=[
             'Development Status :: 4 - Beta',
             'License :: OSI Approved :: Apache Software License',
@@ -160,10 +171,15 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
         ],
+        # 程序的授权信息
         license='Apache License 2.0',
+        # 安装依赖项
         setup_requires=['pytest-runner', 'cython', 'numpy'],
+        # 测试依赖项
         tests_require=['pytest', 'xdoctest', 'asynctest'],
+        # 安装依赖项
         install_requires=get_requirements(),
+        # 包含的第三方库
         ext_modules=[
             make_cuda_ext(
                 name='compiling_info',
@@ -217,5 +233,6 @@ if __name__ == '__main__':
                     'src/masked_conv2d_cuda.cpp', 'src/masked_conv2d_kernel.cu'
                 ]),
         ],
+        # 额外运行的编译命令
         cmdclass={'build_ext': BuildExtension},
         zip_safe=False)
