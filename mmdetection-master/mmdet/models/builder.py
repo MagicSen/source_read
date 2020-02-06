@@ -4,7 +4,7 @@ from mmdet.utils import build_from_cfg
 from .registry import (BACKBONES, DETECTORS, HEADS, LOSSES, NECKS,
                        ROI_EXTRACTORS, SHARED_HEADS)
 
-
+# 创建模型
 def build(cfg, registry, default_args=None):
     if isinstance(cfg, list):
         modules = [

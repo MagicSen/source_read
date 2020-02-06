@@ -9,7 +9,7 @@ from mmdet.ops import ContextBlock, DeformConv, ModulatedDeformConv
 from ..registry import BACKBONES
 from ..utils import build_conv_layer, build_norm_layer
 
-
+# 3 ==> 3
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -80,7 +80,7 @@ class BasicBlock(nn.Module):
 
         return out
 
-
+# 1 ==> 3 ==> 1
 class Bottleneck(nn.Module):
     expansion = 4
 
@@ -237,7 +237,7 @@ class Bottleneck(nn.Module):
                 out = self.conv2(out, offset)
             out = self.norm2(out)
             out = self.relu(out)
-
+            # attention机制
             if self.with_gen_attention:
                 out = self.gen_attention_block(out)
 
@@ -249,7 +249,7 @@ class Bottleneck(nn.Module):
 
             if self.downsample is not None:
                 identity = self.downsample(x)
-
+            # 短接层
             out += identity
 
             return out
@@ -258,7 +258,7 @@ class Bottleneck(nn.Module):
             out = cp.checkpoint(_inner_forward, x)
         else:
             out = _inner_forward(x)
-
+        # 最后外接relu层
         out = self.relu(out)
 
         return out

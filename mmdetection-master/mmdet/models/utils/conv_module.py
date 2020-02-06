@@ -12,7 +12,7 @@ conv_cfg = {
     # TODO: octave conv
 }
 
-
+# 根据cfg配置的参数构建卷积层
 def build_conv_layer(cfg, *args, **kwargs):
     """ Build convolution layer
 
