@@ -71,7 +71,7 @@ class XMLDataset(CustomDataset):
             else:
                 bboxes.append(bbox)
                 labels.append(label)
-        # 如果为空，则初始化为全零
+        # 如果为空，则初始化为全零，载入bboxes也为空，这里如果是空图会跳过
         if not bboxes:
             bboxes = np.zeros((0, 4))
             labels = np.zeros((0, ))

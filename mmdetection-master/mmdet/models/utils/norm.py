@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+# 通过配置文件，映射到所需层的构造函数
 norm_cfg = {
     # format: layer_type: (abbreviation, module)
     'BN': ('bn', nn.BatchNorm2d),
@@ -47,6 +47,7 @@ def build_norm_layer(cfg, num_features, postfix=''):
             layer._specify_ddp_gpu_num(1)
     else:
         assert 'num_groups' in cfg_
+        # norm_layer实际调用nn.BatchNorm2d
         layer = norm_layer(num_channels=num_features, **cfg_)
 
     for param in layer.parameters():

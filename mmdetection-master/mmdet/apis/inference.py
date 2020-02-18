@@ -12,7 +12,7 @@ from mmdet.core import get_classes
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
 
-
+# 初始化检测器
 def init_detector(config, checkpoint=None, device='cuda:0'):
     """Initialize a detector from config file.
 

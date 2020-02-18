@@ -189,7 +189,8 @@ class Bottleneck(nn.Module):
                 bias=False)
         self.add_module(self.norm2_name, norm2)
         self.conv3 = build_conv_layer(
-            conv_cfg,
+            #conv_cfg,
+            dict=(type='ConvDY')
             planes,
             planes * self.expansion,
             kernel_size=1,
@@ -269,7 +270,7 @@ class Bottleneck(nn.Module):
         return out
 
 # block为两种构造Resnet的基础函数
-def make_res_layer(block,
+def make_res_dy_layer(block,
                    inplanes,
                    planes,
                    blocks,
@@ -333,7 +334,7 @@ def make_res_layer(block,
 
 
 @BACKBONES.register_module
-class ResNet(nn.Module):
+class ResDYNet(nn.Module):
     """ResNet backbone.
 
     Args:
@@ -400,7 +401,7 @@ class ResNet(nn.Module):
                  stage_with_gen_attention=((), (), (), ()),
                  with_cp=False,
                  zero_init_residual=True):
-        super(ResNet, self).__init__()
+        super(ResDYNet, self).__init__()
         if depth not in self.arch_settings:
             raise KeyError('invalid depth {} for resnet'.format(depth))
         self.depth = depth
@@ -440,7 +441,7 @@ class ResNet(nn.Module):
             dcn = self.dcn if self.stage_with_dcn[i] else None
             gcb = self.gcb if self.stage_with_gcb[i] else None
             planes = 64 * 2**i
-            res_layer = make_res_layer(
+            res_layer = make_res_dy_layer(
                 self.block,
                 self.inplanes,
                 planes,
@@ -537,7 +538,7 @@ class ResNet(nn.Module):
         return tuple(outs)
 
     def train(self, mode=True):
-        super(ResNet, self).train(mode)
+        super(ResDYNet, self).train(mode)
         # 设置参数固定层，针对freeze层，利用eval不进行BatchNorm的参数更新
         self._freeze_stages()
         if mode and self.norm_eval:

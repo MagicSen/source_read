@@ -4,11 +4,13 @@ import torch.nn as nn
 from mmcv.cnn import constant_init, kaiming_init
 
 from .conv_ws import ConvWS2d
+from .conv_dy import ConvDY2d
 from .norm import build_norm_layer
 
 conv_cfg = {
     'Conv': nn.Conv2d,
     'ConvWS': ConvWS2d,
+    'ConvDY' : ConvDY2d,
     # TODO: octave conv
 }
 
