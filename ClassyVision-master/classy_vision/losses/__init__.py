@@ -101,7 +101,7 @@ from .label_smoothing_loss import LabelSmoothingCrossEntropyLoss  # isort:skip
 from .multi_output_sum_loss import MultiOutputSumLoss  # isort:skip
 from .soft_target_cross_entropy_loss import SoftTargetCrossEntropyLoss  # isort:skip
 from .sum_arbitrary_loss import SumArbitraryLoss  # isort:skip
-
+from .triplet_loss import TripletLoss
 
 __all__ = [
     "BarronLoss",
@@ -110,6 +110,7 @@ __all__ = [
     "MultiOutputSumLoss",
     "SoftTargetCrossEntropyLoss",
     "SumArbitraryLoss",
+    "TripletLoss",
     "build_loss",
     "register_loss",
 ]
