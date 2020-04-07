@@ -53,6 +53,7 @@ import java.nio.ByteBuffer;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
+// AppCompatActivity是FragmentActivity的子类，这里也支持Fragment
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,
         Camera.PreviewCallback,
@@ -91,7 +92,7 @@ public abstract class CameraActivity extends AppCompatActivity
     LOGGER.d("onCreate " + this);
     super.onCreate(null);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+    // 设置布局
     setContentView(R.layout.activity_camera);
     Toolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
@@ -102,7 +103,7 @@ public abstract class CameraActivity extends AppCompatActivity
     } else {
       requestPermission();
     }
-
+    // 获取前端UI绑定的元素
     threadsTextView = findViewById(R.id.threads);
     plusImageView = findViewById(R.id.plus);
     minusImageView = findViewById(R.id.minus);
@@ -170,6 +171,7 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
   protected int[] getRgbBytes() {
+    // YUV ==> RGB
     imageConverter.run();
     return rgbBytes;
   }
@@ -182,6 +184,7 @@ public abstract class CameraActivity extends AppCompatActivity
     return yuvBytes[0];
   }
 
+  // 获取到的数据为YUV420格式
   /** Callback for android.hardware.Camera API */
   @Override
   public void onPreviewFrame(final byte[] bytes, final Camera camera) {
@@ -191,12 +194,16 @@ public abstract class CameraActivity extends AppCompatActivity
     }
 
     try {
+      // 第一次启动，初始化 rgbBytes
       // Initialize the storage bitmaps once when the resolution is known.
       if (rgbBytes == null) {
+        // 获取相机参数
         Camera.Size previewSize = camera.getParameters().getPreviewSize();
+        // 设置尺寸以及初始化rgbBytes
         previewHeight = previewSize.height;
         previewWidth = previewSize.width;
         rgbBytes = new int[previewWidth * previewHeight];
+        // 初始化缓存，检测器
         onPreviewSizeChosen(new Size(previewSize.width, previewSize.height), 90);
       }
     } catch (final Exception e) {
@@ -204,10 +211,12 @@ public abstract class CameraActivity extends AppCompatActivity
       return;
     }
 
+    // YUV420 ==> rgb
     isProcessingFrame = true;
     yuvBytes[0] = bytes;
     yRowStride = previewWidth;
 
+    // Runnable类型，图像类型变换
     imageConverter =
         new Runnable() {
           @Override
@@ -216,6 +225,7 @@ public abstract class CameraActivity extends AppCompatActivity
           }
         };
 
+    // 后处理，为了持续更新图像缓存区
     postInferenceCallback =
         new Runnable() {
           @Override
@@ -224,12 +234,15 @@ public abstract class CameraActivity extends AppCompatActivity
             isProcessingFrame = false;
           }
         };
+    // 预测    
     processImage();
   }
 
+  // Canmera 2.0的图片回调函数
   /** Callback for Camera2 API */
   @Override
   public void onImageAvailable(final ImageReader reader) {
+    // 判断是否初始化
     // We need wait until we have some size from onPreviewSizeChosen
     if (previewWidth == 0 || previewHeight == 0) {
       return;
@@ -244,18 +257,22 @@ public abstract class CameraActivity extends AppCompatActivity
         return;
       }
 
+      // 图片需要先存入缓存
       if (isProcessingFrame) {
         image.close();
         return;
       }
       isProcessingFrame = true;
+      // Trace是个debug工具，能够跟踪cpu的使用情况
       Trace.beginSection("imageAvailable");
+      // 得到yuv数据详情
       final Plane[] planes = image.getPlanes();
       fillBytes(planes, yuvBytes);
       yRowStride = planes[0].getRowStride();
       final int uvRowStride = planes[1].getRowStride();
       final int uvPixelStride = planes[1].getPixelStride();
 
+      // 定义yuv420 ==> rgb回调函数
       imageConverter =
           new Runnable() {
             @Override
@@ -335,6 +352,7 @@ public abstract class CameraActivity extends AppCompatActivity
     super.onDestroy();
   }
 
+  // 异步处理，接受的参数为Runnable类型
   protected synchronized void runInBackground(final Runnable r) {
     if (handler != null) {
       handler.post(r);
@@ -387,7 +405,9 @@ public abstract class CameraActivity extends AppCompatActivity
     return requiredLevel <= deviceLevel;
   }
 
+  // 设置相机
   private String chooseCamera() {
+    // step 1: 获取CameraManager
     final CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
     /*
     try {
@@ -424,9 +444,10 @@ public abstract class CameraActivity extends AppCompatActivity
 
     try {
       for (final String cameraId : manager.getCameraIdList()) {
+        // Step 2: 获取CameraCharacteristics
         CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
         LOGGER.w("Camera id: %s, cOrientation: %d", cameraId, characteristics.get(CameraCharacteristics.LENS_FACING));
-
+        // Step 3: 选择前摄or后摄
         int cOrientation = characteristics.get(CameraCharacteristics.LENS_FACING);
         if (cOrientation == CameraCharacteristics.LENS_FACING_FRONT) {
           LOGGER.w("Choose camera id: %s", cameraId);
@@ -445,6 +466,7 @@ public abstract class CameraActivity extends AppCompatActivity
 
     Fragment fragment;
     if (useCamera2API) {
+      // 如果采用canmer2API则使用这个Fragment
       CameraConnectionFragment camera2Fragment =
           CameraConnectionFragment.newInstance(
               new CameraConnectionFragment.ConnectionCallback() {

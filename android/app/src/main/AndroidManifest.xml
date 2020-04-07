@@ -20,11 +20,14 @@
         android:theme="@style/AppTheme">
 
         <activity
+            // 设置入口activity名称
             android:name=".DetectorActivity"
             android:label="@string/activity_name_detection"
+            // 限制屏幕显示方向横向:landscape, 纵向: portrait
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                // 表示activity应该被列入系统的启动器(launcher)(允许用户启动它)。Launcher是安卓系统中的桌面启动器，是桌面UI的统称
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
