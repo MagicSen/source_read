@@ -527,6 +527,7 @@ public abstract class CameraActivity extends AppCompatActivity
     }
   }
 
+  // 设置是否启动nnapi
   @Override
   public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
     setUseNNAPI(isChecked);

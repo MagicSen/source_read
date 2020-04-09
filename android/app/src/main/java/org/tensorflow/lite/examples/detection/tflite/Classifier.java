@@ -19,6 +19,7 @@ import android.graphics.Bitmap;
 import android.graphics.RectF;
 import java.util.List;
 
+// 通用分类与检测任务接口，内部包括设置线程数、是否开启nnapi、用于保存结果的类
 /** Generic interface for interacting with different recognition engines. */
 public interface Classifier {
   List<Recognition> recognizeImage(Bitmap bitmap);
@@ -33,6 +34,7 @@ public interface Classifier {
 
   void setUseNNAPI(boolean isChecked);
 
+  // 保存识别结果
   /** An immutable result returned by a Classifier describing what was recognized. */
   public class Recognition {
     /**
@@ -40,18 +42,21 @@ public interface Classifier {
      * the object.
      */
     private final String id;
-
+    // 识别结果对应的title
     /** Display name for the recognition. */
     private final String title;
 
+    // 识别结果的置信度
     /**
      * A sortable score for how good the recognition is relative to others. Higher should be better.
      */
     private final Float confidence;
 
+    // 检测任务的位置
     /** Optional location within the source image for the location of the recognized object. */
     private RectF location;
 
+    // 构造函数
     public Recognition(
         final String id, final String title, final Float confidence, final RectF location) {
       this.id = id;
@@ -80,6 +85,7 @@ public interface Classifier {
       this.location = location;
     }
 
+    // 打印结果
     @Override
     public String toString() {
       String resultString = "";

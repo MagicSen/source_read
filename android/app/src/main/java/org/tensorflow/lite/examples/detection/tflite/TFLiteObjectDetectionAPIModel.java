@@ -40,29 +40,38 @@ import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.examples.detection.env.Logger;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 
+// 通过调用tflite，实现Classifier功能
 /**
  * Wrapper for frozen detection models trained using the Tensorflow Object Detection API:
  * github.com/tensorflow/models/tree/master/research/object_detection
  */
 public class TFLiteObjectDetectionAPIModel implements Classifier {
+  // 日志
   private static final Logger LOGGER = new Logger();
 
+  // 最大返回框数目
   // Only return this many results.
   private static final int NUM_DETECTIONS = 10;
+  // 浮点数模型需要减除均值方差
   // Float model
   private static final float IMAGE_MEAN = 128.0f;
   private static final float IMAGE_STD = 128.0f;
+  // 进程数
   // Number of threads in the java app
   private static final int NUM_THREADS = 4;
+  // 是否调用量化模型
   private boolean isModelQuantized;
+  // 输入长跟宽
   // Config values.
   //private int inputSize;
   private int inputHeight;
   private int inputWidth;
+  // 预申请的缓存，存放label
   // Pre-allocated buffers.
   private Vector<String> labels = new Vector<String>();
   private int[] intValues;
   // outputLocations: array of shape [Batchsize, NUM_DETECTIONS,4]
+  // 输出的检测框位置
   // contains the location of detected boxes
   private float[][][] outputLocations;
   // outputClasses: array of shape [Batchsize, NUM_DETECTIONS]
@@ -71,16 +80,18 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
   // outputScores: array of shape [Batchsize, NUM_DETECTIONS]
   // contains the scores of detected boxes
   private float[][] outputScores;
+  // 一个batch的检测框数目
   // numDetections: array of shape [Batchsize]
   // contains the number of detected boxes
   private float[] numDetections;
 
   private ByteBuffer imgData;
-
+  // tflite模型
   private Interpreter tfLite;
 
   private TFLiteObjectDetectionAPIModel() {}
 
+  // 从存储位置载入模型
   /** Memory-map the model file in Assets. */
   private static MappedByteBuffer loadModelFile(AssetManager assets, String modelFilename)
       throws IOException {
@@ -92,6 +103,7 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
   }
 
+  // 相当于工厂类
   /**
    * Initializes a native TensorFlow session for classifying images.
    *
@@ -112,8 +124,11 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
       final int inputWidth,
       final boolean isQuantized)
       throws IOException {
+    // 定义TFLiteObjectDetectionAPIModel
     final TFLiteObjectDetectionAPIModel d = new TFLiteObjectDetectionAPIModel();
+    // 是否量化
     LOGGER.w("Is Quantised %b", isQuantized);
+    // 加载label定义
     InputStream labelsInput = null;
     String actualFilename = labelFilename.split("file:///android_asset/")[1];
     labelsInput = assetManager.open(actualFilename);
@@ -129,13 +144,15 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     //d.inputSize = inputSize;
     d.inputHeight = inputHeight;
     d.inputWidth = inputWidth;
+    // 加载tflite模型
     try {
       d.tfLite = new Interpreter(loadModelFile(assetManager, modelFilename));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
+    // 设置是否为量化模型
     d.isModelQuantized = isQuantized;
+    // 设置预申请的缓存资源
     // Pre-allocate buffers.
     int numBytesPerChannel;
     if (isQuantized) {
@@ -143,13 +160,14 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     } else {
       numBytesPerChannel = 4; // Floating point
     }
+    // 申请模型输入的img资源
     //d.imgData = ByteBuffer.allocateDirect(1 * d.inputSize * d.inputSize * 3 * numBytesPerChannel);
     d.imgData = ByteBuffer.allocateDirect(1 * d.inputHeight * d.inputWidth * 3 * numBytesPerChannel);
-
+    // 定义缓存数据格式
     d.imgData.order(ByteOrder.nativeOrder());
     //d.intValues = new int[d.inputSize * d.inputSize];
     d.intValues = new int[d.inputHeight * d.inputWidth];
-
+    // 设置线程数，输出变量数
     d.tfLite.setNumThreads(NUM_THREADS);
     d.outputLocations = new float[1][NUM_DETECTIONS][4];
     d.outputClasses = new float[1][NUM_DETECTIONS];
@@ -158,52 +176,59 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     return d;
   }
 
+  // 给定Bitmap, 开始预测结果
   @Override
   public List<Recognition> recognizeImage(final Bitmap bitmap) {
     // Log this method so that it can be analyzed with systrace.
     Trace.beginSection("recognizeImage");
 
     Trace.beginSection("preprocessBitmap");
+    // 将bitmap的图像转化到intValues中，颜色转化为int类型
     // Preprocess the image data from 0-255 int to normalized float based
     // on the provided parameters.
     bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
     //LOGGER.w("Input Image: " + bitmap.getWidth() + "," + bitmap.getHeight());
     //String img_path="bbb.png";
     //ImageUtils.saveBitmap(bitmap, img_path);
-
+    // 把ByteBuffer的指针position重新置0
     imgData.rewind();
     //for (int i = 0; i < inputSize; ++i) {
       //for (int j = 0; j < inputSize; ++j) {
         //int pixelValue = intValues[i * inputSize + j];
     for (int i = 0; i < inputWidth; ++i) {
         for (int j = 0; j < inputHeight; ++j) {
+        // 得到某个位置的像素值， 一个int 4 byte，依次代表 A, R, G, B
         int pixelValue = intValues[i * inputHeight + j];
         if (isModelQuantized) {
+          // 量化模型，不做减均值方差的操作
+          // 原始顺序: A, R, G, B ==> OpenCV顺序 B, G, R
           // Quantized model
           imgData.put((byte) (pixelValue & 0xFF));
           imgData.put((byte) ((pixelValue >> 8) & 0xFF));
           imgData.put((byte) ((pixelValue >> 16) & 0xFF));
         } else { // Float model
+          // 需要减均值方差
           imgData.putFloat(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
           imgData.putFloat((((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
           imgData.putFloat((((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+          // debug
           if (i < 5 && j < 5) {
             //LOGGER.w(((pixelValue & 0xFF) - IMAGE_MEAN) / IMAGE_STD + " " + (((pixelValue >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD + " " + (((pixelValue >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
           }
         }
       }
     }
-
     Trace.endSection(); // preprocessBitmap
-
+    // 申请输出结果空间
     // Copy the input data into TensorFlow.
     Trace.beginSection("feed");
     outputLocations = new float[1][NUM_DETECTIONS][4];
     outputClasses = new float[1][NUM_DETECTIONS];
     outputScores = new float[1][NUM_DETECTIONS];
     numDetections = new float[1];
-
+    // 构建输入
     Object[] inputArray = {imgData};
+    // 构建输出map
     Map<Integer, Object> outputMap = new HashMap<>();
     outputMap.put(0, outputLocations);
     outputMap.put(1, outputClasses);
@@ -211,11 +236,13 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
     outputMap.put(3, numDetections);
     Trace.endSection();
 
+    // 多进程预测
     // Run the inference call.
     Trace.beginSection("run");
     tfLite.runForMultipleInputsOutputs(inputArray, outputMap);
     Trace.endSection();
 
+    // 获取输出结果
     // Show the best detections.
     // after scaling them back to the input size.
     final ArrayList<Recognition> recognitions = new ArrayList<>(NUM_DETECTIONS);
@@ -224,17 +251,19 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
       float xmin = outputLocations[0][i][1];
       float ymax = outputLocations[0][i][2];
       float xmax = outputLocations[0][i][3];
+      // 剔除不合法输出
       if(xmin > xmax || ymin > ymax || xmin < 0 || xmax < 0 || ymin < 0 || ymax < 0 || xmin > 1 || xmax > 1 || ymin > 1 || ymax > 1 || outputScores[0][i] > 1) {
         //outputScores[0][i] = 0;
         continue;
       }
-
+      // 产出输出结果
       final RectF detection =
           new RectF(
               //outputLocations[0][i][1] * inputSize,
               //outputLocations[0][i][0] * inputSize,
               //outputLocations[0][i][3] * inputSize,
               //outputLocations[0][i][2] * inputSize);
+              // 注意x,y顺序
               outputLocations[0][i][1] * inputWidth,
               outputLocations[0][i][0] * inputHeight,
               outputLocations[0][i][3] * inputWidth,
@@ -244,7 +273,9 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
       // SSD Mobilenet V1 Model assumes class 0 is background class
       // in label file and class labels start from 1 to number_of_classes+1,
       // while outputClasses correspond to class index from 0 to number_of_classes
+      // 位置0处为背景
       int labelOffset = 1;
+      // 构造识别结果
       recognitions.add(
           new Recognition(
               "" + i,
@@ -268,10 +299,11 @@ public class TFLiteObjectDetectionAPIModel implements Classifier {
   @Override
   public void close() {}
 
+  // 设置线程数
   public void setNumThreads(int num_threads) {
     if (tfLite != null) tfLite.setNumThreads(num_threads);
   }
-
+  // 设置是否使用nnapi
   @Override
   public void setUseNNAPI(boolean isChecked) {
     if (tfLite != null) tfLite.setUseNNAPI(isChecked);
