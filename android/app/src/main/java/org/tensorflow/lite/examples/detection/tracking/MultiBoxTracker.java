@@ -35,6 +35,7 @@ import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 import org.tensorflow.lite.examples.detection.tflite.Classifier.Recognition;
 
+// 虽然名字里有Tracker，但是没有跟踪功能，只有显示结果框功能
 /** A tracker that handles non-max suppression and matches existing objects to new detections. */
 public class MultiBoxTracker {
   private static final float TEXT_SIZE_DIP = 18;
@@ -68,6 +69,7 @@ public class MultiBoxTracker {
   private int frameHeight;
   private int sensorOrientation;
 
+  // 设置绘图参数
   public MultiBoxTracker(final Context context) {
     for (final int color : COLORS) {
       availableColors.add(color);
@@ -86,6 +88,7 @@ public class MultiBoxTracker {
     borderedText = new BorderedText(textSizePx);
   }
 
+  // 设置每一帧的信息
   public synchronized void setFrameConfiguration(
       final int width, final int height, final int sensorOrientation) {
     frameWidth = width;
@@ -93,6 +96,7 @@ public class MultiBoxTracker {
     this.sensorOrientation = sensorOrientation + 90;
   }
 
+  // debug绘图
   public synchronized void drawDebug(final Canvas canvas) {
     final Paint textPaint = new Paint();
     textPaint.setColor(Color.WHITE);
@@ -111,15 +115,18 @@ public class MultiBoxTracker {
     }
   }
 
+  // 处理结果
   public synchronized void trackResults(final List<Recognition> results, final long timestamp) {
     logger.i("Processing %d results from %d", results.size(), timestamp);
     processResults(results);
   }
 
+  // 获取Frame到画布之间的变换矩阵
   private Matrix getFrameToCanvasMatrix() {
     return frameToCanvasMatrix;
   }
 
+  // 绘制
   public synchronized void draw(final Canvas canvas) {
     //final boolean rotated = sensorOrientation % 180 == 90;
     final boolean rotated = true;
@@ -127,7 +134,7 @@ public class MultiBoxTracker {
         Math.min(
             canvas.getHeight() / (float) (rotated ? frameWidth : frameHeight),
             canvas.getWidth() / (float) (rotated ? frameHeight : frameWidth));
-
+    // 计算变换矩阵
     frameToCanvasMatrix =
         ImageUtils.getTransformationMatrix(
             frameWidth,
@@ -138,17 +145,23 @@ public class MultiBoxTracker {
             false);
 
 
+    // 绘制跟踪结果
     for (final TrackedRecognition recognition : trackedObjects) {
       final RectF trackedPos = new RectF(recognition.location);
+      // 为了竖屏变横屏显示，做了一些位置变换(trick)
       float tmp = frameHeight - trackedPos.top;
       trackedPos.bottom = frameHeight - trackedPos.bottom;
       trackedPos.top = tmp;
+      // 从Frame坐标系变换到画板坐标系
       getFrameToCanvasMatrix().mapRect(trackedPos);
+      // 设置绘图颜色
       boxPaint.setColor(recognition.color);
 
+      // 绘制圆角矩形
       float cornerSize = Math.min(trackedPos.width(), trackedPos.height()) / 8.0f;
       canvas.drawRoundRect(trackedPos, cornerSize, cornerSize, boxPaint);
 
+      // 设置绘图的文字
       final String labelString =
           !TextUtils.isEmpty(recognition.title)
               ? String.format("%s %.2f", recognition.title, (100 * recognition.detectionConfidence))
@@ -160,39 +173,44 @@ public class MultiBoxTracker {
     }
   }
 
+  // 处理绘图结果
   private void processResults(final List<Recognition> results) {
+    // 获得检测框的结果
     final List<Pair<Float, Recognition>> rectsToTrack = new LinkedList<Pair<Float, Recognition>>();
-
+    // 清空历史检测框信息
     screenRects.clear();
+    // 得到Frame到画布的变换矩阵
     final Matrix rgbFrameToScreen = new Matrix(getFrameToCanvasMatrix());
-
+    // 检测结果预处理，从Frame坐标变换到画布坐标
     for (final Recognition result : results) {
       if (result.getLocation() == null) {
         continue;
       }
+      // 得到Frame坐标检测框
       final RectF detectionFrameRect = new RectF(result.getLocation());
-
+      // 坐标变换
       final RectF detectionScreenRect = new RectF();
       rgbFrameToScreen.mapRect(detectionScreenRect, detectionFrameRect);
-
+      // 结果debug
       logger.v(
           "Result! Frame: " + result.getLocation() + " mapped to screen:" + detectionScreenRect);
-
+      //
       screenRects.add(new Pair<Float, RectF>(result.getConfidence(), detectionScreenRect));
 
+      // 如果检测框过小 < 16pixel，不展示
       if (detectionFrameRect.width() < MIN_SIZE || detectionFrameRect.height() < MIN_SIZE) {
         logger.w("Degenerate rectangle! " + detectionFrameRect);
         continue;
       }
-
+      // 添加检测结果
       rectsToTrack.add(new Pair<Float, Recognition>(result.getConfidence(), result));
     }
-
+    // 如果没有检测结果，返回
     if (rectsToTrack.isEmpty()) {
       logger.v("Nothing to track, aborting.");
       return;
     }
-
+    // 清空跟踪结果, 原始代码里，这里有bug，造成的检测框驻留问题
     trackedObjects.clear();
     for (final Pair<Float, Recognition> potential : rectsToTrack) {
       final TrackedRecognition trackedRecognition = new TrackedRecognition();
@@ -201,13 +219,13 @@ public class MultiBoxTracker {
       trackedRecognition.title = potential.second.getTitle();
       trackedRecognition.color = COLORS[trackedObjects.size()];
       trackedObjects.add(trackedRecognition);
-
+      // 检测框控制在Colors数量内
       if (trackedObjects.size() >= COLORS.length) {
         break;
       }
     }
   }
-
+  // 自定义检测框结果保存类型
   private static class TrackedRecognition {
     RectF location;
     float detectionConfidence;
