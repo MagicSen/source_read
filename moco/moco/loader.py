@@ -2,7 +2,7 @@
 from PIL import ImageFilter
 import random
 
-
+# 随机剪裁，获取正例样本对
 class TwoCropsTransform:
     """Take two random crops of one image as the query and key."""
 
