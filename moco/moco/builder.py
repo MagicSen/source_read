@@ -74,32 +74,42 @@ class MoCo(nn.Module):
 
     @torch.no_grad()
     def _batch_shuffle_ddp(self, x):
+        # 只支持数据并行
         """
         Batch shuffle, for making use of BatchNorm.
         *** Only support DistributedDataParallel (DDP) model. ***
         """
+        # 获取分布式训练所有节点的x，并且连接到一起
         # gather from all gpus
         batch_size_this = x.shape[0]
         x_gather = concat_all_gather(x)
+        # 得到数据总数
         batch_size_all = x_gather.shape[0]
-
+        # 得到GPU数目
         num_gpus = batch_size_all // batch_size_this
 
+        # 获取随机下标，batch_size_all为全部节点一个batch的总数
         # random shuffle index
         idx_shuffle = torch.randperm(batch_size_all).cuda()
 
+        # 随机下标从0号gpu广播到全体
         # broadcast to all gpus
         torch.distributed.broadcast(idx_shuffle, src=0)
 
+        # 获得随机数排序后下标，可以用来反推出排序结果
         # index for restoring
         idx_unshuffle = torch.argsort(idx_shuffle)
 
+        # 获得gpu编号
         # shuffled index for this gpu
         gpu_idx = torch.distributed.get_rank()
+        # 按number_gpu划分，随机list
         idx_this = idx_shuffle.view(num_gpus, -1)[gpu_idx]
 
+        # 获得每个gpu相关
         return x_gather[idx_this], idx_unshuffle
 
+    # 反算出随机的batch
     @torch.no_grad()
     def _batch_unshuffle_ddp(self, x, idx_unshuffle):
         """
@@ -140,7 +150,7 @@ class MoCo(nn.Module):
             # 基于query分支的encoder，采用动量方式更新字典分支的encoder
             self._momentum_update_key_encoder()  # update the key encoder
 
-            # shuffle BN
+            # shuffle BN 避免小batch内部信息泄露
             # shuffle for making use of BN
             im_k, idx_unshuffle = self._batch_shuffle_ddp(im_k)
 
