@@ -19,6 +19,7 @@ class Res5ROIHeadsExtraNorm(Res5ROIHeads):
     """
     def _build_res5_block(self, cfg):
         seq, out_channels = super()._build_res5_block(cfg)
+        # 实际采用SyncBN
         norm = cfg.MODEL.RESNETS.NORM
         # 添加BN层
         norm = get_norm(norm, out_channels)
