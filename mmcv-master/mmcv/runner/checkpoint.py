@@ -116,7 +116,7 @@ def load_url_dist(url):
             checkpoint = model_zoo.load_url(url)
     return checkpoint
 
-
+# 获取torch提供的预训练模型
 def get_torchvision_models():
     model_urls = dict()
     for _, name, ispkg in pkgutil.walk_packages(torchvision.models.__path__):
