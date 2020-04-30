@@ -2,6 +2,7 @@
 from PIL import ImageFilter
 import random
 
+# 继承了transform操作
 # 随机剪裁，获取正例样本对
 class TwoCropsTransform:
     """Take two random crops of one image as the query and key."""
@@ -10,6 +11,7 @@ class TwoCropsTransform:
         self.base_transform = base_transform
 
     def __call__(self, x):
+        # 同一个结果经过两次随机剪裁变换，这对儿pair是正例
         q = self.base_transform(x)
         k = self.base_transform(x)
         return [q, k]

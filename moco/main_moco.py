@@ -263,6 +263,7 @@ def main_worker(gpu, ngpus_per_node, args):
         train_sampler = None
 
     # 数据加载，将数据变换后的数据，切分为一个一个batch
+    # pin_memory表示是否常驻内存
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True)
@@ -297,6 +298,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         [batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}]".format(epoch))
 
+    # 开启训练
     # switch to train mode
     model.train()
 
@@ -311,6 +313,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         # compute output
         output, target = model(im_q=images[0], im_k=images[1])
+        # 交叉熵损失函数，计算字典负例的能力
         loss = criterion(output, target)
 
         # acc1/acc5 are (K+1)-way contrast classifier accuracy

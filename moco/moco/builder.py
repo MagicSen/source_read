@@ -21,13 +21,16 @@ class MoCo(nn.Module):
         self.m = m
         self.T = T
 
+        # resnet最后一个fc层输出的特征维数为128
         # create the encoders
         # num_classes is the output fc dimension
         self.encoder_q = base_encoder(num_classes=dim)
         self.encoder_k = base_encoder(num_classes=dim)
 
+        # 如果启用mlp层，那么输出前需要再加一层relu与fc
         # 增加projection header
         if mlp:  # hack: brute-force replacement
+            # 新加的fc层与之前fc层输入的尺寸一致
             dim_mlp = self.encoder_q.fc.weight.shape[1]
             self.encoder_q.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.encoder_q.fc)
             self.encoder_k.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), self.encoder_k.fc)
@@ -37,10 +40,11 @@ class MoCo(nn.Module):
             param_k.data.copy_(param_q.data)  # initialize
             param_k.requires_grad = False  # not update by gradient
 
+        # 注册字典队列到self._buffer字典中不会被优化器更新，需要自动更新，大小为dim X K, 这里是 128 * 65536
         # create the queue
         self.register_buffer("queue", torch.randn(dim, K))
         self.queue = nn.functional.normalize(self.queue, dim=0)
-
+        # 注册队列指针
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
 
     # 动量方式更新encoder参数
@@ -49,6 +53,7 @@ class MoCo(nn.Module):
         """
         Momentum update of the key encoder
         """
+        # encoder_k的参数依靠encoder_q的参数来 动量式的更新
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
 
@@ -64,10 +69,11 @@ class MoCo(nn.Module):
         ptr = int(self.queue_ptr)
         # 设置的字典长度必须整除 batch_size
         assert self.K % batch_size == 0  # for simplicity
-        # 更新队列
+        # 更新队列，将队列当前 前ptr ~ ptr+batch_size行替换为当前行
+        # 假设batch_size为128，一共4个gpu，则每次替换512行，约128轮，队列完全替换完一次
         # replace the keys at ptr (dequeue and enqueue)
         self.queue[:, ptr:ptr + batch_size] = keys.T
-        # 更新队列下标
+        # 循环更新队列下标
         ptr = (ptr + batch_size) % self.K  # move pointer
         # 记录队列下标
         self.queue_ptr[0] = ptr
@@ -163,11 +169,13 @@ class MoCo(nn.Module):
             k = self._batch_unshuffle_ddp(k, idx_unshuffle)
 
         # 计算正例的loss，采用爱因斯坦简记法，按行点积求和
+        # 1个正例
         # compute logits
         # Einstein sum is more intuitive
         # positive logits: Nx1
         l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
         # 出队列，求两个矩阵相乘
+        # K个负例
         # negative logits: NxK
         l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
 
@@ -182,7 +190,7 @@ class MoCo(nn.Module):
         # labels: positive key indicators
         labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
 
-        # 出入队列
+        # 更新队列
         # dequeue and enqueue
         self._dequeue_and_enqueue(k)
 
